@@ -76,8 +76,6 @@ export const CreatePost = ({ onClose }: CreatePostProps) => {
     }
   };
 
-  if (!isConnected) return null;
-
   return (
     <Card className="w-full mb-6">
       <CardHeader>
@@ -85,26 +83,42 @@ export const CreatePost = ({ onClose }: CreatePostProps) => {
         <CardDescription>Post anonymously to the BaseStory feed</CardDescription>
       </CardHeader>
       <CardContent>
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your story, alpha, or thoughts anonymously..."
-          rows={4}
-          className="mb-3"
-          maxLength={1000}
-        />
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {content.length}/1000 characters
-          </span>
-          <Button
-            onClick={handlePost}
-            disabled={isPosting || !content.trim()}
-            size="sm"
-          >
-            {isPosting ? 'Posting...' : 'Post Story'}
-          </Button>
-        </div>
+        {!isConnected ? (
+          <div className="text-center py-6">
+            <p className="text-muted-foreground mb-3">Please connect your wallet to post a story</p>
+            <Button onClick={onClose} variant="outline" size="sm">
+              Close
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Share your story, alpha, or thoughts anonymously..."
+              rows={4}
+              className="mb-3"
+              maxLength={1000}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {content.length}/1000 characters
+              </span>
+              <div className="flex gap-2">
+                <Button onClick={onClose} variant="outline" size="sm">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handlePost}
+                  disabled={isPosting || !content.trim()}
+                  size="sm"
+                >
+                  {isPosting ? 'Posting...' : 'Post Story'}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
