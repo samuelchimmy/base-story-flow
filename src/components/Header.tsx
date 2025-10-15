@@ -1,8 +1,12 @@
 import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
+import { FundAccountButton } from './FundAccountButton';
 
 export const Header = () => {
-  const { isConnected, username, connect, disconnect } = useWallet();
+  const { isConnected, username, universalAddress, balance, loading, connect, disconnect } = useWallet();
+
+  const formatAddress = (addr: string | null) => 
+    addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : '';
 
   return (
     <header className="w-full border-b border-border bg-background sticky top-0 z-50">
@@ -16,10 +20,19 @@ export const Header = () => {
         
         <div className="flex items-center gap-2">
           {isConnected ? (
-            <>
-              <span className="hidden sm:inline text-xs md:text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex flex-col items-end mr-2">
+                <span className="text-xs font-mono text-muted-foreground">
+                  {formatAddress(universalAddress)}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {balance ? `${balance} ETH` : 'Loading...'}
+                </span>
+              </div>
+              <span className="hidden sm:inline md:hidden text-xs text-muted-foreground">
                 {username}
               </span>
+              <FundAccountButton />
               <Button
                 variant="outline"
                 size="sm"
@@ -28,14 +41,15 @@ export const Header = () => {
               >
                 Disconnect
               </Button>
-            </>
+            </div>
           ) : (
             <Button
               onClick={connect}
               size="sm"
+              disabled={loading}
               className="text-xs md:text-sm"
             >
-              Connect Wallet
+              {loading ? 'Connecting...' : 'Connect Wallet'}
             </Button>
           )}
         </div>

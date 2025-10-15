@@ -14,9 +14,12 @@ interface WalletContextType {
   universalAddress: Address | null;
   subAccountAddress: Address | null;
   username: string;
+  balance: string | null;
+  loading: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
+  fetchBalance: () => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -43,6 +46,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [universalAddress, setUniversalAddress] = useState<Address | null>(null);
   const [subAccountAddress, setSubAccountAddress] = useState<Address | null>(null);
   const [username, setUsername] = useState('');
+  const [balance, setBalance] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<any>(null);
 
   // Initialize Base Account SDK
@@ -73,12 +78,28 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     initializeSDK();
   }, []);
 
+  const fetchBalance = useCallback(async () => {
+    if (!provider || !universalAddress) return;
+
+    try {
+      const balanceWei = await provider.request({
+        method: 'eth_getBalance',
+        params: [universalAddress, 'latest'],
+      }) as string;
+      const balanceEth = (parseInt(balanceWei, 16) / 1e18).toFixed(4);
+      setBalance(balanceEth);
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
+    }
+  }, [provider, universalAddress]);
+
   const connect = useCallback(async () => {
     if (!provider) {
       console.error('Provider not initialized');
       return;
     }
 
+    setLoading(true);
     try {
       // Request account connection - this will trigger Sub Account creation
       const accounts = await provider.request({
@@ -131,17 +152,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
         // Store connection state
         localStorage.setItem('walletConnected', 'true');
+        
+        // Fetch balance
+        fetchBalance();
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [provider]);
+  }, [provider, fetchBalance]);
 
   const disconnect = useCallback(() => {
     setIsConnected(false);
     setUniversalAddress(null);
     setSubAccountAddress(null);
     setUsername('');
+    setBalance(null);
     localStorage.removeItem('walletConnected');
   }, []);
 
@@ -202,9 +229,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         universalAddress,
         subAccountAddress,
         username,
+        balance,
+        loading,
         connect,
         disconnect,
         sendCalls,
+        fetchBalance,
       }}
     >
       {children}
