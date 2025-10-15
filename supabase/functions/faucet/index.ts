@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { SignJWT, importPKCS8 } from "https://deno.land/x/jose@v5.9.6/index.ts";
+import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +10,51 @@ const corsHeaders = {
 const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
 const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
 const BALANCE_THRESHOLD = 100000; // 0.1 USDC (6 decimals)
+
+async function generateCDPJwt(apiKeyId: string, apiKeySecret: string, requestMethod: string, requestPath: string): Promise<string> {
+  try {
+    // Format the private key properly
+    let pemKey = apiKeySecret.trim();
+    
+    // Replace escaped newlines with actual newlines
+    if (pemKey.includes('\\n')) {
+      pemKey = pemKey.replace(/\\n/g, '\n');
+    }
+    
+    // Ensure proper PEM formatting
+    if (!pemKey.includes('-----BEGIN')) {
+      pemKey = `-----BEGIN EC PRIVATE KEY-----\n${pemKey}\n-----END EC PRIVATE KEY-----`;
+    }
+
+    console.log('Importing private key...');
+    
+    // Import the EC private key for ES256
+    const privateKey = await importPKCS8(pemKey, 'ES256');
+
+    console.log('Creating JWT...');
+    
+    // Create JWT following CDP spec
+    const jwt = await new SignJWT({
+      uri: `${requestMethod} ${requestPath}`
+    })
+      .setProtectedHeader({ 
+        alg: 'ES256', 
+        kid: apiKeyId,
+        nonce: crypto.randomUUID()
+      })
+      .setSubject(apiKeyId)
+      .setIssuer('cdp')
+      .setIssuedAt()
+      .setNotBefore(Math.floor(Date.now() / 1000))
+      .setExpirationTime(Math.floor(Date.now() / 1000) + 120) // 2 minutes
+      .sign(privateKey);
+
+    return jwt;
+  } catch (error) {
+    console.error('JWT generation error:', error);
+    throw new Error(`Failed to generate JWT: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -58,7 +105,7 @@ serve(async (req) => {
       );
     }
 
-    // 2. Call CDP Faucet API
+    // 2. Get CDP credentials
     const CDP_API_KEY_ID = Deno.env.get('CDP_API_KEY_ID');
     const CDP_API_KEY_SECRET = Deno.env.get('CDP_API_KEY_SECRET');
 
@@ -70,19 +117,21 @@ serve(async (req) => {
       );
     }
 
+    console.log('Generating CDP JWT token...');
+    
+    // 3. Generate JWT for authentication
+    const requestPath = `/v1/networks/base-sepolia/addresses/${address}/faucet`;
+    const jwt = await generateCDPJwt(CDP_API_KEY_ID, CDP_API_KEY_SECRET, 'POST', requestPath);
+
     console.log('Calling CDP Faucet API...');
     
-    const faucetResponse = await fetch('https://api.cdp.coinbase.com/platform/v1/faucet/dispense', {
+    // 4. Call CDP Faucet API with JWT
+    const faucetResponse = await fetch(`https://api.cdp.coinbase.com/platform${requestPath}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${CDP_API_KEY_ID}:${CDP_API_KEY_SECRET}`,
+        'Authorization': `Bearer ${jwt}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        address: address,
-        asset_id: 'usdc',
-        network_id: 'base-sepolia',
-      }),
     });
 
     if (!faucetResponse.ok) {
@@ -112,7 +161,7 @@ serve(async (req) => {
     const faucetResult = await faucetResponse.json();
     console.log('Faucet dispensed successfully:', faucetResult);
 
-    const txHash = faucetResult.transaction_hash || faucetResult.tx_hash;
+    const txHash = faucetResult.transaction_hash;
     
     return new Response(
       JSON.stringify({
