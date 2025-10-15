@@ -54,7 +54,11 @@ const generateMockStories = (): Story[] => {
   return stories;
 };
 
-export const StoryFeed = () => {
+interface StoryFeedProps {
+  onPostClick: () => void;
+}
+
+export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
   const [stories, setStories] = useState<Story[]>(generateMockStories());
   const [sortBy, setSortBy] = useState<SortType>('latest');
   const { sendCalls, isConnected } = useWallet();
@@ -133,7 +137,7 @@ export const StoryFeed = () => {
   return (
     <div className="w-full">
       <div className="container mx-auto px-4 py-4 sm:py-6">
-        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 border-b border-border">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 border-b border-border">
           <Button
             variant={sortBy === 'latest' ? 'default' : 'ghost'}
             size="sm"
@@ -149,6 +153,14 @@ export const StoryFeed = () => {
             className="text-xs sm:text-sm"
           >
             Most Loved
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPostClick}
+            className="text-xs sm:text-sm"
+          >
+            Post
           </Button>
         </div>
 

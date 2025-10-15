@@ -8,7 +8,11 @@ import { toast } from 'sonner';
 // TODO: Replace with your deployed contract address and ABI
 const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
-export const CreatePost = () => {
+interface CreatePostProps {
+  onClose: () => void;
+}
+
+export const CreatePost = ({ onClose }: CreatePostProps) => {
   const [content, setContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const { isConnected, subAccountAddress, sendCalls } = useWallet();
@@ -61,6 +65,7 @@ export const CreatePost = () => {
       */
       
       setContent('');
+      onClose();
     } catch (error) {
       console.error('Failed to post story:', error);
       toast.error('Failed to post story', {
