@@ -1,6 +1,20 @@
-# Welcome to your Lovable project
+# BaseStory - Anonymous On-Chain Stories on Base
 
-## Project info
+> **Base Builder Quest 11 Submission** - An on-chain app with no wallet pop-ups using Base Account SDK
+
+## 🎯 Bounty Compliance
+
+This app implements **Sub Accounts with Auto Spend Permissions** using the Base Account SDK to create a frictionless, "no wallet pop-up" user experience:
+
+✅ **Sub Accounts**: Automatically created on wallet connection using `creation: 'on-connect'`  
+✅ **Auto Spend Permissions**: Enabled by default for seamless repeat transactions  
+✅ **No Pop-ups**: After initial approval, all transactions execute without prompts  
+✅ **wallet_sendCalls**: Uses EIP-5792 for transaction batching  
+✅ **User Experience**: Love, tip, and post stories with zero friction  
+
+See [BASE_ACCOUNT_INTEGRATION.md](./BASE_ACCOUNT_INTEGRATION.md) for detailed implementation.
+
+## 🚀 Live Demo
 
 **URL**: https://lovable.dev/projects/2fd8ecf1-3fb4-4d81-9410-6198e8b18815
 
@@ -50,15 +64,34 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## 💡 What is BaseStory?
 
-This project is built with:
+BaseStory is an anonymous on-chain story platform where users can:
+- 📝 Share stories and alphas anonymously
+- ❤️ Love stories (on-chain transaction)
+- 💙 Tip authors (payable transaction)
+- 🔗 Share to social platforms (Twitter, Farcaster, etc.)
+- 👁️ View story engagement metrics
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+All on-chain interactions happen **without repeated wallet pop-ups** thanks to Base Account SDK's Sub Accounts and Auto Spend Permissions.
+
+## 🛠️ Technologies
+
+- **Base Account SDK** (`@base-org/account`) - Sub Accounts & Auto Spend Permissions
+- **React** + **Vite** - Frontend framework
+- **TypeScript** - Type safety
+- **Viem** - Ethereum interactions
+- **TailwindCSS** - Styling
+- **shadcn-ui** - UI components
+- **Lucide Icons** - Icon library
+
+## ✨ Key Features
+
+- **Frictionless Transactions**: Only one approval needed, then all future transactions are seamless
+- **Anonymous Posting**: Auto-generated usernames for privacy
+- **Story Feed**: Sort by Latest or Most Loved
+- **Mobile-First Design**: Optimized for mobile with rounded UI
+- **Clean Design**: White background, Base blue (#0052FF) accents
 
 ## How can I deploy this project?
 
