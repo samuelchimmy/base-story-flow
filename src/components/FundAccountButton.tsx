@@ -2,35 +2,49 @@ import { useState } from 'react';
 import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const FundAccountButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { universalAddress, fetchBalance } = useWallet();
+  const { universalAddress, balance, fetchBalance } = useWallet();
+
+  const currentBalance = parseFloat(balance || '0');
+  const hasSufficientBalance = currentBalance > 0.1;
 
   const handleFund = async () => {
-    if (!universalAddress) return;
+    if (!universalAddress) {
+      toast.error('No wallet connected');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // For now, direct users to the Base Sepolia faucet
-      // In production, you would call your backend API endpoint
-      toast.info('Opening Base Sepolia Faucet...', {
-        description: 'Get test ETH for your account',
+      const { data, error } = await supabase.functions.invoke('faucet', {
+        body: { address: universalAddress },
       });
-      
-      // Open Base Sepolia faucet in new tab
-      window.open(`https://www.coinbase.com/faucets/base-sepolia-faucet`, '_blank');
-      
-      // Refresh balance after a delay
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.message || data.error);
+        return;
+      }
+
+      toast.success('USDC sent successfully!', {
+        description: data.transactionHash 
+          ? `Transaction: ${data.transactionHash.slice(0, 10)}...` 
+          : 'Funds will arrive shortly',
+      });
+
+      // Refresh balance after a few seconds
       setTimeout(() => {
         fetchBalance();
-        toast.success('Balance refresh scheduled', {
-          description: 'Your balance will update shortly',
-        });
-      }, 3000);
+      }, 5000);
     } catch (error) {
       console.error('Faucet error:', error);
-      toast.error('Failed to open faucet');
+      toast.error('Failed to fund account', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -39,12 +53,12 @@ export const FundAccountButton = () => {
   return (
     <Button
       onClick={handleFund}
-      disabled={isLoading}
+      disabled={isLoading || hasSufficientBalance}
       size="sm"
       variant="secondary"
       className="text-xs md:text-sm"
     >
-      {isLoading ? 'Opening...' : 'Get Testnet ETH'}
+      {isLoading ? 'Funding...' : hasSufficientBalance ? 'Sufficient Balance' : 'Fund Account'}
     </Button>
   );
 };

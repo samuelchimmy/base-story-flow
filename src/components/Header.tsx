@@ -26,7 +26,7 @@ export const Header = () => {
                   {formatAddress(universalAddress)}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {balance ? `${balance} ETH` : 'Loading...'}
+                  {balance ? `${balance} USDC` : 'Loading...'}
                 </span>
               </div>
               <span className="hidden sm:inline md:hidden text-xs text-muted-foreground">

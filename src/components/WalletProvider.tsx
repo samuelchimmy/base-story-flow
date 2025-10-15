@@ -3,6 +3,8 @@ import { createBaseAccountSDK } from '@base-org/account';
 import { base } from 'viem/chains';
 import type { Address } from 'viem';
 
+const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const; // Base Sepolia USDC
+
 interface SubAccount {
   address: Address;
   factory?: Address;
@@ -82,14 +84,28 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     if (!provider || !universalAddress) return;
 
     try {
-      const balanceWei = await provider.request({
-        method: 'eth_getBalance',
-        params: [universalAddress, 'latest'],
+      // Fetch USDC balance instead of ETH
+      // Call balanceOf(address) function on USDC contract
+      const balanceData = `0x70a08231000000000000000000000000${universalAddress.substring(2)}`;
+      
+      const balanceHex = await provider.request({
+        method: 'eth_call',
+        params: [
+          {
+            to: USDC_CONTRACT_ADDRESS,
+            data: balanceData,
+          },
+          'latest',
+        ],
       }) as string;
-      const balanceEth = (parseInt(balanceWei, 16) / 1e18).toFixed(4);
-      setBalance(balanceEth);
+      
+      const balanceRaw = parseInt(balanceHex, 16);
+      const balanceUsdc = (balanceRaw / 1e6).toFixed(2); // USDC has 6 decimals
+      setBalance(balanceUsdc);
+      console.log(`USDC Balance: ${balanceUsdc} USDC`);
     } catch (error) {
-      console.error('Failed to fetch balance:', error);
+      console.error('Failed to fetch USDC balance:', error);
+      setBalance('0.00');
     }
   }, [provider, universalAddress]);
 

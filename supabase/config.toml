@@ -1,1 +1,4 @@
 project_id = "ewqoryvormjvzumqaarf"
+
+[functions.faucet]
+verify_jwt = false
