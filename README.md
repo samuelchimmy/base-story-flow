@@ -102,7 +102,10 @@ pnpm dev
 
 ### Credit
 
+<div align="center">
+
 This project is built with 💙 by **Jadeofwallstreet**.
 
-*   **Portfolio:** [https://www.0xnotes.lol/](https://www.0xnotes.lol/)
-*   **X (Twitter):** [https://x.com/MetisCharter](https://x.com/MetisCharter)
+[Portfolio](https://www.0xnotes.lol/) · [X (Twitter)](https://x.com/MetisCharter)
+
+</div>
