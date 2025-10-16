@@ -54,41 +54,46 @@ To run this project locally, you will need Node.js and `pnpm` installed.
 
 Open your terminal and run:
 
+### 🧭 Clone the Repository
+
+Open your terminal and run:
+
 ```bash
-$ git clone https://github.com/samuelchimmy/base-story-flow.git
-$ cd base-story-flow
+git clone https://github.com/samuelchimmy/base-story-flow.git
+Then navigate into the project directory:
 
-    ```
+bash
+Copy code
+cd base-story-flow
+📦 Install Dependencies
+bash
+Copy code
+pnpm install
+⚙️ Set Up Environment Variables
+Create a .env file in the project root and add the following (replace the placeholders with your actual keys):
 
-2.  **Install Dependencies**
-    ```sh
-    pnpm install
-    ```
+bash
+Copy code
+# Supabase (for view counts)
+VITE_SUPABASE_URL="..."
+VITE_SUPABASE_ANON_KEY="..."
+VITE_SUPABASE_INCREMENT_VIEW_URL="..."
 
-3.  **Set Up Environment Variables**
-    *   Create a `.env` file in the project root.
-    *   You will need to populate it with your own keys for the Supabase and Coinbase Developer Platform (for the USDC faucet). See the Supabase and CDP documentation for details on obtaining these.
-    ```
-    # Supabase (for view counts)
-    VITE_SUPABASE_URL="..."
-    VITE_SUPABASE_ANON_KEY="..."
-    VITE_SUPABASE_INCREMENT_VIEW_URL="..."
-
-    # Supabase Edge Functions (server-side)
-    # These are set in the Supabase dashboard, not here
-    # SUPABASE_SERVICE_ROLE_KEY="..."
+# Supabase Edge Functions (server-side)
+# These are set in the Supabase dashboard, not here
+# SUPABASE_SERVICE_ROLE_KEY="..."
     
-    # Coinbase Faucet API (server-side)
-    # These are set in the Supabase dashboard, not here
-    # CDP_API_KEY_ID="..."
-    # CDP_API_KEY_SECRET="..."
-    # CDP_WALLET_SECRET="..."
-    ```
+# Coinbase Faucet API (server-side)
+# These are set in the Supabase dashboard, not here
+# CDP_API_KEY_ID="..."
+# CDP_API_KEY_SECRET="..."
+# CDP_WALLET_SECRET="..."
+🚀 Run the Development Server
+bash
+Copy code
+pnpm dev
+Copy code
 
-4.  **Run the Development Server**
-    ```sh
-    pnpm dev
-    ```
 
 ## Credit
 
