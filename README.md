@@ -54,10 +54,6 @@ To run this project locally, you will need Node.js and `pnpm` installed.
 
 Open your terminal and run:
 
-### 🧭 Clone the Repository
-
-Open your terminal and run:
-
 ```bash
 git clone https://github.com/samuelchimmy/base-story-flow.git
 Then navigate into the project directory:
@@ -92,10 +88,9 @@ VITE_SUPABASE_INCREMENT_VIEW_URL="..."
 bash
 Copy code
 pnpm dev
-Copy code
 
 
-## Credit
+### Credit
 
 This project was built with 💙 by **Jadeofwallstreet**.
 
