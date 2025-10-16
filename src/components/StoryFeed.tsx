@@ -4,6 +4,15 @@ import { Button } from './ui/button';
 import { publicClient } from '../viemClient';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
 import { toast } from 'sonner';
+// --- FIX #1: Import the Supabase client ---
+import { createClient } from '@supabase/supabase-js';
+
+// --- FIX #2: Initialize the Supabase client for frontend queries ---
+// Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are in your .env file
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 type SortType = 'latest' | 'loved';
 
@@ -16,41 +25,55 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortType>('latest');
 
-  // Fetch stories from blockchain
+  // Fetch stories from blockchain and view counts from Supabase
   const fetchStories = useCallback(async () => {
-    setIsLoading(true);
+    // We only want the loading spinner on the very first load
+    if (!stories.length) {
+      setIsLoading(true);
+    }
+    
     try {
-      const data = await publicClient.readContract({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'getAllStories',
-      });
+      // --- FIX #3: Fetch both on-chain and off-chain data in parallel ---
+      const [onChainData, { data: viewCountsData, error: viewsError }] = await Promise.all([
+        publicClient.readContract({
+          address: CONTRACT_ADDRESS,
+          abi: CONTRACT_ABI,
+          functionName: 'getAllStories',
+        }),
+        supabase.from('story_views').select('story_id, view_count')
+      ]);
       
-      // Transform contract data to Story format
-      const transformedStories: Story[] = data.map((story) => ({
-        id: story.id.toString(),
-        content: story.content,
-        author: `${story.author.slice(0, 6)}...${story.author.slice(-4)}`,
-        authorAddress: story.author,
-        timestamp: new Date(Number(story.timestamp) * 1000),
-        loves: Number(story.loveCount),
-        views: Math.floor(Math.random() * 200) + 50, // Mock views for now
-        loved: false, // TODO: Check if current user has loved
-      }));
+      if (viewsError) throw viewsError;
+      
+      // --- FIX #4: Merge the two data sources ---
+      const transformedStories: Story[] = onChainData.map((story) => {
+        // Find the matching view count from the Supabase data
+        const views = viewCountsData?.find(v => v.story_id === Number(story.id));
+        
+        return {
+          id: story.id.toString(),
+          content: story.content,
+          author: `${story.author.slice(0, 6)}...${story.author.slice(-4)}`,
+          authorAddress: story.author,
+          timestamp: new Date(Number(story.timestamp) * 1000),
+          loves: Number(story.loveCount),
+          views: views ? views.view_count : 0, // Use real view count, default to 0
+          loved: false, // TODO: Check if current user has loved
+        };
+      });
       
       setStories(transformedStories);
     } catch (error) {
       console.error('Failed to fetch stories:', error);
-      toast.error('Failed to load stories from blockchain');
+      toast.error('Failed to load stories from the network');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [stories.length]); // Depend on stories.length to manage initial loading state
 
   useEffect(() => {
     fetchStories();
     
-    // Poll for new stories every 10 seconds
     const interval = setInterval(fetchStories, 10000);
     return () => clearInterval(interval);
   }, [fetchStories]);
@@ -96,7 +119,7 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
         <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Loading stories from blockchain...</p>
+              <p>Loading stories from the network...</p>
             </div>
           ) : stories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
