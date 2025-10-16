@@ -17,10 +17,14 @@ export const Header = () => {
     }
   };
 
+  // --- THE FIX IS HERE: Create a simple boolean to check the balance ---
+  // This will be true only if the balance is a valid number and less than or equal to 0.1
+  const showFundButton = balance !== null && parseFloat(balance) <= 0.1;
+
   return (
+    // We are reverting to your original, simpler layout classes
     <header className="w-full border-b border-border bg-background sticky top-0 z-50">
-      {/* --- THE FIX IS ON THIS LINE: `gap-4` was added --- */}
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="font-bangers text-2xl sm:text-3xl md:text-4xl leading-none">
             <span className="text-primary">Base</span>
@@ -44,7 +48,10 @@ export const Header = () => {
                   {balance ? `${balance} USDC` : 'Loading...'}
                 </span>
               </div>
-              <FundAccountButton />
+
+              {/* --- THE FIX IS HERE: Only render the button if the condition is true --- */}
+              {showFundButton && <FundAccountButton />}
+              
               <Button
                 variant="outline"
                 size="sm"
