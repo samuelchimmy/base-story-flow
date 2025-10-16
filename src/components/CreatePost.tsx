@@ -4,18 +4,18 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-
-// TODO: Replace with your deployed contract address and ABI
-const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
+import { encodeFunctionData } from 'viem';
 
 interface CreatePostProps {
   onClose: () => void;
+  refetchStories: () => Promise<void>;
 }
 
-export const CreatePost = ({ onClose }: CreatePostProps) => {
+export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
   const [content, setContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
-  const { isConnected, subAccountAddress, sendCalls } = useWallet();
+  const { isConnected, sendCalls } = useWallet();
 
   const handlePost = async () => {
     if (!isConnected || !content.trim()) {
@@ -23,31 +23,8 @@ export const CreatePost = ({ onClose }: CreatePostProps) => {
       return;
     }
 
-    if (!subAccountAddress) {
-      toast.error('Sub Account not available');
-      return;
-    }
-
-    // Check if contract is deployed
-    if (CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
-      toast.error('Smart contract not deployed yet', {
-        description: 'The BaseStory contract needs to be deployed to Base Sepolia first',
-      });
-      return;
-    }
-
     setIsPosting(true);
     try {
-      // For now, just simulate posting without actual contract call
-      // Once contract is deployed, use encodeFunctionData from viem
-      
-      toast.info('Story posting feature coming soon!', {
-        description: 'Smart contract deployment required. Your story: ' + content.slice(0, 50) + '...',
-      });
-
-      // Uncomment when contract is ready:
-      /*
-      const { encodeFunctionData } = await import('viem');
       const calldata = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'postStory',
@@ -57,15 +34,20 @@ export const CreatePost = ({ onClose }: CreatePostProps) => {
       await sendCalls([{
         to: CONTRACT_ADDRESS,
         data: calldata,
+        value: '0x0',
       }]);
 
       toast.success('Story posted successfully!', {
         description: 'It will appear in the feed shortly',
       });
-      */
       
       setContent('');
       onClose();
+      
+      // Refresh stories after a short delay to allow blockchain to update
+      setTimeout(() => {
+        refetchStories();
+      }, 2000);
     } catch (error) {
       console.error('Failed to post story:', error);
       toast.error('Failed to post story', {

@@ -8,6 +8,11 @@ import { Footer } from '@/components/Footer';
 
 const Index = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  const refetchStories = async () => {
+    setRefetchTrigger(prev => prev + 1);
+  };
 
   return (
     <WalletProvider>
@@ -16,8 +21,16 @@ const Index = () => {
         <Hero />
         <main className="flex-1">
           <div className="container mx-auto px-4 py-6 max-w-4xl">
-            {showCreatePost && <CreatePost onClose={() => setShowCreatePost(false)} />}
-            <StoryFeed onPostClick={() => setShowCreatePost(true)} />
+            {showCreatePost && (
+              <CreatePost 
+                onClose={() => setShowCreatePost(false)} 
+                refetchStories={refetchStories}
+              />
+            )}
+            <StoryFeed 
+              onPostClick={() => setShowCreatePost(true)}
+              key={refetchTrigger}
+            />
           </div>
         </main>
         <Footer />

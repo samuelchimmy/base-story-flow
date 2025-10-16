@@ -18,13 +18,13 @@ export interface Story {
 
 interface StoryCardProps {
   story: Story;
-  onLove: (id: string) => void;
-  onTip: (id: string, authorAddress: Address) => void;
+  refetchStories: () => Promise<void>;
 }
 
-export const StoryCard = ({ story, onLove, onTip }: StoryCardProps) => {
+export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { isConnected } = useWallet();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
   const needsExpansion = story.content.length > maxPreviewLength;
@@ -63,20 +63,71 @@ export const StoryCard = ({ story, onLove, onTip }: StoryCardProps) => {
     window.open(shareOptions[0].url, '_blank');
   };
 
-  const handleLove = () => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet first');
+  const handleLove = async () => {
+    if (!isConnected || isProcessing) {
+      if (!isConnected) toast.error('Please connect your wallet first');
       return;
     }
-    onLove(story.id);
+    
+    setIsProcessing(true);
+    try {
+      const { encodeFunctionData } = await import('viem');
+      const { CONTRACT_ADDRESS, CONTRACT_ABI } = await import('../config');
+      
+      const calldata = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'loveStory',
+        args: [BigInt(story.id)],
+      });
+      
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: calldata,
+      }]);
+      
+      toast.success('Story loved! ❤️');
+      await refetchStories();
+    } catch (error) {
+      console.error('Failed to love story:', error);
+      toast.error('Failed to love story. You may have already loved it.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleTip = () => {
-    if (!isConnected) {
-      toast.error('Please connect your wallet first');
+  const handleTip = async () => {
+    if (!isConnected || isProcessing) {
+      if (!isConnected) toast.error('Please connect your wallet first');
       return;
     }
-    onTip(story.id, story.authorAddress);
+    
+    setIsProcessing(true);
+    try {
+      const { encodeFunctionData, parseEther } = await import('viem');
+      const { CONTRACT_ADDRESS, CONTRACT_ABI } = await import('../config');
+      
+      const calldata = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'tipStory',
+        args: [BigInt(story.id)],
+      });
+      
+      const tipAmount = parseEther('0.001'); // 0.001 ETH tip
+      
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: calldata,
+        value: `0x${tipAmount.toString(16)}`,
+      }]);
+      
+      toast.success('Tip sent! 💙');
+      await refetchStories();
+    } catch (error) {
+      console.error('Failed to send tip:', error);
+      toast.error('Failed to send tip');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
