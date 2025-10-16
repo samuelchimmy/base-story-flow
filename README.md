@@ -50,11 +50,14 @@ To create a truly frictionless experience, the app leverages **Auto Spend Permis
 
 To run this project locally, you will need Node.js and `pnpm` installed.
 
-1.  **Clone the Repository**
-    ```sh
-    ```bash
-git clone https://github.com/samuelchimmy/base-story-flow.git
-cd base-story-flow
+1.  ### 🧭 Clone the Repository
+
+Open your terminal and run:
+
+```bash
+$ git clone https://github.com/samuelchimmy/base-story-flow.git
+$ cd base-story-flow
+
     ```
 
 2.  **Install Dependencies**
