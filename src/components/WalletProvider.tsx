@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { createBaseAccountSDK } from '@base-org/account';
-import { base } from 'viem/chains';
+// --- FIX #1: Change 'base' to 'baseSepolia' to target the correct testnet ---
+import { baseSepolia } from 'viem/chains'; 
 import type { Address } from 'viem';
 
 const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const; // Base Sepolia USDC
@@ -22,6 +23,7 @@ interface WalletContextType {
   disconnect: () => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
   fetchBalance: () => Promise<void>;
+  // provider prop can be added here if needed by other components
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -60,7 +62,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          appChainIds: [base.id],
+          // --- FIX #1 (continued): Use baseSepolia.id here ---
+          appChainIds: [baseSepolia.id], 
           subAccounts: {
             creation: 'on-connect', // Auto-create sub account on connect
             defaultAccount: 'sub',   // Use sub account by default
@@ -229,8 +232,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('walletConnected');
   }, []);
 
-  // Send calls using wallet_sendCalls (EIP-5792)
-  // This will use the Sub Account by default with Auto Spend Permissions
+
   const sendCalls = useCallback(async (
     calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>
   ): Promise<string> => {
@@ -239,26 +241,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Send calls from Sub Account
-      // The first transaction will prompt for Auto Spend Permission approval
-      // Subsequent transactions will execute without prompts
       const callsId = await provider.request({
         method: 'wallet_sendCalls',
         params: [
           {
+            // --- FIX #2 & #3: Simplify payload and use correct chainId ---
             version: '2.0',
-            atomicRequired: true,
-            chainId: `0x${base.id.toString(16)}`,
+            chainId: `0x${baseSepolia.id.toString(16)}`, // Use baseSepolia.id
             from: subAccountAddress,
             calls: calls.map(call => ({
               to: call.to,
               data: call.data || '0x',
               value: call.value || '0x0',
             })),
-            capabilities: {
-              // Optional: Add paymaster URL for gas sponsorship
-              // paymasterUrl: 'your-paymaster-url',
-            },
+            // 'atomicRequired' and 'capabilities' fields removed to fix "version" error
           },
         ],
       }) as string;
