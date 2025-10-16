@@ -80,15 +80,15 @@ VITE_SUPABASE_ANON_KEY="..."
 VITE_SUPABASE_INCREMENT_VIEW_URL="..."
 ```
 
-# Supabase Edge Functions (server-side)
-# These are set in the Supabase dashboard, not here
-# SUPABASE_SERVICE_ROLE_KEY="..."
+**Supabase Edge Functions (server-side)**
+**These are set in the Supabase dashboard, not here**
+*SUPABASE_SERVICE_ROLE_KEY="..."*
     
-# Coinbase Faucet API (server-side)
-# These are set in the Supabase dashboard, not here
-# CDP_API_KEY_ID="..."
-# CDP_API_KEY_SECRET="..."
-# CDP_WALLET_SECRET="..."
+**Coinbase Faucet API (server-side)**
+**These are set in the Supabase dashboard, not here**
+*CDP_API_KEY_ID="..."*
+*CDP_API_KEY_SECRET="..."*
+*CDP_WALLET_SECRET="..."*
 
 Run the Development Server
 
