@@ -54,26 +54,31 @@ To run this project locally, you will need Node.js and `pnpm` installed.
 
 Open your terminal and run:
 
-```bash
+```sh
 git clone https://github.com/samuelchimmy/base-story-flow.git
+```sh
+
 Then navigate into the project directory:
 
-bash
-Copy code
+```sh
 cd base-story-flow
-📦 Install Dependencies
-bash
-Copy code
+```sh
+
+Install Dependencies
+
+```sh
 pnpm install
-⚙️ Set Up Environment Variables
+```sh
+
+Set Up Environment Variables
 Create a .env file in the project root and add the following (replace the placeholders with your actual keys):
 
-bash
-Copy code
+```sh
 # Supabase (for view counts)
 VITE_SUPABASE_URL="..."
 VITE_SUPABASE_ANON_KEY="..."
 VITE_SUPABASE_INCREMENT_VIEW_URL="..."
+```sh
 
 # Supabase Edge Functions (server-side)
 # These are set in the Supabase dashboard, not here
@@ -84,15 +89,16 @@ VITE_SUPABASE_INCREMENT_VIEW_URL="..."
 # CDP_API_KEY_ID="..."
 # CDP_API_KEY_SECRET="..."
 # CDP_WALLET_SECRET="..."
-🚀 Run the Development Server
-bash
-Copy code
+
+Run the Development Server
+```sh
 pnpm dev
+```sh
 
 
 ### Credit
 
-This project was built with 💙 by **Jadeofwallstreet**.
+This project is built with 💙 by **Jadeofwallstreet**.
 
 *   **Portfolio:** [https://www.0xnotes.lol/](https://www.0xnotes.lol/)
 *   **X (Twitter):** [https://x.com/MetisCharter](https://x.com/MetisCharter)
