@@ -12,7 +12,7 @@
 
 ## What is BaseStory?
 
-BaseStory is a simple, anonymous, on-chain story platform built on the Base network. It allows users to share stories, thoughts, and "alphas" without revealing their identity. The core of the application is its seamless user experience, where all on-chain interactions—loving, tipping, and posting—happen instantly without the constant interruption of wallet pop-ups.
+BaseStory is a simple, anonymous, on-chain story platform built on the Base network. It allows users to share stories, thoughts, and "alphas" without revealing their identity. The core of the application is its seamless user experience, where all on-chain interactions—loving, tipping, and posting happen instantly without the constant interruption of wallet pop-ups.
 
 This is made possible by leveraging the power of the **Base Account SDK**.
 
