@@ -4,31 +4,31 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-## 🚀 Live Demo
+## Live Demo
 
 **[https://base-story-flow.vercel.app/](https://base-story-flow.vercel.app/)**
 
 ---
 
-## 💡 What is BaseStory?
+## What is BaseStory?
 
 BaseStory is a simple, anonymous, on-chain story platform built on the Base network. It allows users to share stories, thoughts, and "alphas" without revealing their identity. The core of the application is its seamless user experience, where all on-chain interactions—loving, tipping, and posting—happen instantly without the constant interruption of wallet pop-ups.
 
 This is made possible by leveraging the power of the **Base Account SDK**.
 
-## 🎯 Bounty Compliance: "Build an onchain app with no wallet pop-ups"
+## Bounty Compliance: "Build an onchain app with no wallet pop-ups"
 
 This application was built specifically to meet and exceed the requirements of Base Builder Quest 11. Here is how we utilized the required technologies:
 
-#### ✅ **Sub Accounts (`Base Account SDK`)**
+#### **Sub Accounts (`Base Account SDK`)**
 The app is configured to automatically create a unique, app-specific **Sub Account** for each user the first time they connect their Base Account. This is achieved by setting `creation: 'on-connect'` and `defaultAccount: 'sub'` in the SDK configuration. This app-specific wallet is then used to sign all subsequent transactions, creating a secure, sandboxed environment for user interactions.
 
-#### ✅ **Auto Spend Permissions**
+#### **Auto Spend Permissions**
 To create a truly frictionless experience, the app leverages **Auto Spend Permissions**, which are enabled by default for Sub Accounts. When a user performs their first on-chain action (like loving a story), they are prompted to approve a spending limit. Once granted, all future transactions can be executed by the Sub Account instantly, using funds from the parent Base Account without requiring another pop-up. This is the key to our "no pop-up" design.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 *   **Frictionless On-Chain Actions**: After a one-time approval, post stories, love content, and tip authors in USDC instantly and without any further wallet pop-ups.
 *   **Anonymous Identity**: Usernames are auto-generated for each session to ensure privacy.
@@ -36,7 +36,7 @@ To create a truly frictionless experience, the app leverages **Auto Spend Permis
 *   **Real View Counts**: A hybrid architecture uses Supabase to track high-frequency data like view counts off-chain, providing real metrics without excessive gas costs.
 *   **Clean & Responsive UI**: A mobile-first design built with TailwindCSS and shadcn-ui, featuring a clean white background and Base-blue accents.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 *   **Smart Contract**: Solidity
 *   **Blockchain**: Base Sepolia
