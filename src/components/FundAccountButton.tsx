@@ -23,23 +23,39 @@ export const FundAccountButton = () => {
         body: { address: universalAddress },
       });
 
-      if (error) throw error;
-
-      if (data?.error) {
-        toast.error(data.message || data.error);
+      if (error) {
+        console.error('Supabase function invocation error:', error);
+        toast.error('Failed to fund account', {
+          description: error.message || 'Unknown error',
+        });
         return;
       }
 
-      toast.success('USDC sent successfully!', {
-        description: data.transactionHash 
-          ? `Transaction: ${data.transactionHash.slice(0, 10)}...` 
-          : 'Funds will arrive shortly',
-      });
+      // Check if the response contains an error from the function
+      if (data?.error) {
+        toast.error(data.error, {
+          description: data.message || 'Please try again later',
+        });
+        return;
+      }
 
-      // Refresh balance after a few seconds
-      setTimeout(() => {
-        fetchBalance();
-      }, 5000);
+      // Success response
+      if (data?.success) {
+        toast.success(data.message || 'USDC sent successfully!', {
+          description: data.transactionHash 
+            ? `View on explorer: ${data.transactionHash.slice(0, 10)}...` 
+            : 'Funds will arrive shortly',
+          action: data.explorerUrl ? {
+            label: 'View Transaction',
+            onClick: () => window.open(data.explorerUrl, '_blank'),
+          } : undefined,
+        });
+
+        // Refresh balance after a few seconds
+        setTimeout(() => {
+          fetchBalance();
+        }, 5000);
+      }
     } catch (error) {
       console.error('Faucet error:', error);
       toast.error('Failed to fund account', {
@@ -53,7 +69,7 @@ export const FundAccountButton = () => {
   return (
     <Button
       onClick={handleFund}
-      disabled={isLoading || hasSufficientBalance}
+      disabled={isLoading || hasSufficientBalance || !universalAddress}
       size="sm"
       variant="secondary"
       className="text-xs md:text-sm"
