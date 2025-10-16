@@ -19,7 +19,7 @@ if (supabaseUrl && supabaseAnonKey) {
   supabase = createClient(supabaseUrl, supabaseAnonKey);
 } else {
   // Log a warning in the console so the developer knows what's wrong
-  console.warn("Supabase environment variables (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) are not configured. View counts will be disabled.");
+  console.warn("environment variables (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY) are not configured. View counts will be disabled.");
 }
 
 type SortType = 'latest' | 'loved';
@@ -92,7 +92,7 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
     // Show a one-time warning toast if Supabase is not configured
     if (!supabase) {
       toast.warning("View count feature is disabled.", {
-        description: "Supabase environment variables are not set.",
+        description: "environment variables are not set.",
       });
     }
     
