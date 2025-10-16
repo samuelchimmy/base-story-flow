@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // --- FIX #1: Import useEffect ---
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
@@ -12,7 +12,7 @@ export interface Story {
   authorAddress: Address;
   timestamp: Date;
   loves: number;
-  views: number;
+  views: number; // This will now come from StoryFeed as the real count
   loved: boolean;
 }
 
@@ -24,6 +24,8 @@ interface StoryCardProps {
 export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  // --- FIX #2: Add state to track if the view has been counted for this session ---
+  const [hasBeenViewed, setHasBeenViewed] = useState(false);
   const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
@@ -31,6 +33,33 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const displayContent = needsExpansion && !isExpanded
     ? story.content.slice(0, maxPreviewLength) + '...'
     : story.content;
+
+  // --- FIX #3: Add a useEffect to call the increment-view function ---
+  useEffect(() => {
+    // This effect runs once when the component mounts.
+    // We check `hasBeenViewed` to prevent it from firing multiple times if the component re-renders.
+    if (!hasBeenViewed) {
+      const incrementViewCount = async () => {
+        try {
+          // Fire-and-forget call to our Supabase function. We don't need to wait for the response.
+          fetch(import.meta.env.VITE_SUPABASE_INCREMENT_VIEW_URL, { // Ensure this URL is in your .env
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ storyId: Number(story.id) }),
+          });
+          // Mark as viewed for this session so we don't call it again.
+          setHasBeenViewed(true);
+        } catch (error) {
+          // We don't show an error to the user as this is a background task.
+          console.error("Failed to increment view count:", error);
+        }
+      };
+      
+      // Add a small delay so this doesn't block the initial render.
+      const timer = setTimeout(incrementViewCount, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [story.id, hasBeenViewed]);
 
   const formatTimestamp = (date: Date) => {
     const now = new Date();
@@ -59,7 +88,6 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       },
     ];
 
-    // For simplicity, open Twitter share
     window.open(shareOptions[0].url, '_blank');
   };
 
@@ -85,7 +113,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
         data: calldata,
       }]);
       
-      toast.success('Story loved! ❤️');
+      toast.success('Story loved! 💙');
       await refetchStories();
     } catch (error) {
       console.error('Failed to love story:', error);
@@ -200,6 +228,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
           <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* --- FIX #4: Display the real view count passed in via props --- */}
           <span className="text-xs sm:text-sm">{story.views}</span>
         </div>
       </div>
