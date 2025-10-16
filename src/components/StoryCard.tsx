@@ -91,7 +91,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
         data: calldata,
       }]);
       
-      toast.success('Story loved! ❤️');
+      toast.success('Story loved! 💙');
       await refetchStories();
     } catch (error) {
       console.error('Failed to love story:', error);
