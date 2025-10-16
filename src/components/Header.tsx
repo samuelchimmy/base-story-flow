@@ -21,17 +21,14 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           {isConnected ? (
             <div className="flex items-center gap-2">
-              <div className="hidden md:flex flex-col items-end mr-2">
-                <span className="text-xs font-mono text-muted-foreground">
+              <div className="flex flex-col items-end mr-2">
+                <span className="text-xs font-mono text-muted-foreground hidden md:block">
                   {formatAddress(universalAddress)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs md:text-sm font-semibold text-foreground">
                   {balance ? `${balance} USDC` : 'Loading...'}
                 </span>
               </div>
-              <span className="hidden sm:inline md:hidden text-xs text-muted-foreground">
-                {username}
-              </span>
               <FundAccountButton />
               <Button
                 variant="outline"
