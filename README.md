@@ -50,35 +50,35 @@ To create a truly frictionless experience, the app leverages **Auto Spend Permis
 
 To run this project locally, you will need Node.js and `pnpm` installed.
 
-1.  ### 🧭 Clone the Repository
+1.  ### Clone the Repository
 
 Open your terminal and run:
 
-```sh
+```bash
 git clone https://github.com/samuelchimmy/base-story-flow.git
-```sh
+```
 
 Then navigate into the project directory:
 
-```sh
+```bash
 cd base-story-flow
-```sh
+```
 
 Install Dependencies
 
-```sh
+```bash
 pnpm install
-```sh
+```
 
 Set Up Environment Variables
 Create a .env file in the project root and add the following (replace the placeholders with your actual keys):
 
-```sh
+```bash
 # Supabase (for view counts)
 VITE_SUPABASE_URL="..."
 VITE_SUPABASE_ANON_KEY="..."
 VITE_SUPABASE_INCREMENT_VIEW_URL="..."
-```sh
+```
 
 # Supabase Edge Functions (server-side)
 # These are set in the Supabase dashboard, not here
@@ -91,9 +91,11 @@ VITE_SUPABASE_INCREMENT_VIEW_URL="..."
 # CDP_WALLET_SECRET="..."
 
 Run the Development Server
-```sh
+
+
+```bash
 pnpm dev
-```sh
+```
 
 
 ### Credit
