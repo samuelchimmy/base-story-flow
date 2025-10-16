@@ -1,5 +1,7 @@
+// src/components/CreatePost.tsx
+
 import { useState } from 'react';
-import { useWallet } from './WalletProvider';
+import { useWallet } from './WalletProvider'; // Your context provider
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -31,6 +33,8 @@ export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
         args: [content],
       });
 
+      // This call will now automatically include the correct chainId
+      // because we fixed the sendCalls helper in the WalletProvider.
       await sendCalls([{
         to: CONTRACT_ADDRESS,
         data: calldata,
