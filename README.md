@@ -1,106 +1,95 @@
-# BaseStory - Anonymous On-Chain Stories on Base
+# BaseStory - Anonymous On-Chain Stories
 
-> **Base Builder Quest 11 Submission** - An on-chain app with no wallet pop-ups using Base Account SDK
+> **Base Builder Quest 11 Submission:** An on-chain story platform built with a frictionless, "no wallet pop-up" user experience powered by the Base Account SDK.
 
-## 🎯 Bounty Compliance
-
-This app implements **Sub Accounts with Auto Spend Permissions** using the Base Account SDK to create a frictionless, "no wallet pop-up" user experience:
-
-✅ **Sub Accounts**: Automatically created on wallet connection using `creation: 'on-connect'`  
-✅ **Auto Spend Permissions**: Enabled by default for seamless repeat transactions  
-✅ **No Pop-ups**: After initial approval, all transactions execute without prompts  
-✅ **wallet_sendCalls**: Uses EIP-5792 for transaction batching  
-✅ **User Experience**: Love, tip, and post stories with zero friction  
-
-See [BASE_ACCOUNT_INTEGRATION.md](./BASE_ACCOUNT_INTEGRATION.md) for detailed implementation.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## 🚀 Live Demo
 
-**URL**: https://lovable.dev/projects/2fd8ecf1-3fb4-4d81-9410-6198e8b18815
+**[https://base-story-flow.vercel.app/](https://base-story-flow.vercel.app/)**
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/2fd8ecf1-3fb4-4d81-9410-6198e8b18815) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
 ## 💡 What is BaseStory?
 
-BaseStory is an anonymous on-chain story platform where users can:
-- 📝 Share stories and alphas anonymously
-- ❤️ Love stories (on-chain transaction)
-- 💙 Tip authors (payable transaction)
-- 🔗 Share to social platforms (Twitter, Farcaster, etc.)
-- 👁️ View story engagement metrics
+BaseStory is a simple, anonymous, on-chain story platform built on the Base network. It allows users to share stories, thoughts, and "alphas" without revealing their identity. The core of the application is its seamless user experience, where all on-chain interactions—loving, tipping, and posting—happen instantly without the constant interruption of wallet pop-ups.
 
-All on-chain interactions happen **without repeated wallet pop-ups** thanks to Base Account SDK's Sub Accounts and Auto Spend Permissions.
+This is made possible by leveraging the power of the **Base Account SDK**.
 
-## 🛠️ Technologies
+## 🎯 Bounty Compliance: "Build an onchain app with no wallet pop-ups"
 
-- **Base Account SDK** (`@base-org/account`) - Sub Accounts & Auto Spend Permissions
-- **React** + **Vite** - Frontend framework
-- **TypeScript** - Type safety
-- **Viem** - Ethereum interactions
-- **TailwindCSS** - Styling
-- **shadcn-ui** - UI components
-- **Lucide Icons** - Icon library
+This application was built specifically to meet and exceed the requirements of Base Builder Quest 11. Here is how we utilized the required technologies:
+
+#### ✅ **Sub Accounts (`Base Account SDK`)**
+The app is configured to automatically create a unique, app-specific **Sub Account** for each user the first time they connect their Base Account. This is achieved by setting `creation: 'on-connect'` and `defaultAccount: 'sub'` in the SDK configuration. This app-specific wallet is then used to sign all subsequent transactions, creating a secure, sandboxed environment for user interactions.
+
+#### ✅ **Auto Spend Permissions**
+To create a truly frictionless experience, the app leverages **Auto Spend Permissions**, which are enabled by default for Sub Accounts. When a user performs their first on-chain action (like loving a story), they are prompted to approve a spending limit. Once granted, all future transactions can be executed by the Sub Account instantly, using funds from the parent Base Account without requiring another pop-up. This is the key to our "no pop-up" design.
+
+---
 
 ## ✨ Key Features
 
-- **Frictionless Transactions**: Only one approval needed, then all future transactions are seamless
-- **Anonymous Posting**: Auto-generated usernames for privacy
-- **Story Feed**: Sort by Latest or Most Loved
-- **Mobile-First Design**: Optimized for mobile with rounded UI
-- **Clean Design**: White background, Base blue (#0052FF) accents
+*   **Frictionless On-Chain Actions**: After a one-time approval, post stories, love content, and tip authors in USDC instantly and without any further wallet pop-ups.
+*   **Anonymous Identity**: Usernames are auto-generated for each session to ensure privacy.
+*   **On-Chain Data**: All stories, loves, and tip counts are stored and managed by a custom-built Solidity smart contract on the Base Sepolia network.
+*   **Real View Counts**: A hybrid architecture uses Supabase to track high-frequency data like view counts off-chain, providing real metrics without excessive gas costs.
+*   **Clean & Responsive UI**: A mobile-first design built with TailwindCSS and shadcn-ui, featuring a clean white background and Base-blue accents.
 
-## How can I deploy this project?
+## 🛠️ Tech Stack
 
-Simply open [Lovable](https://lovable.dev/projects/2fd8ecf1-3fb4-4d81-9410-6198e8b18815) and click on Share -> Publish.
+*   **Smart Contract**: Solidity
+*   **Blockchain**: Base Sepolia
+*   **Frontend**: React (Vite) + TypeScript
+*   **Wallet Integration**: Base Account SDK (`@base-org/account`)
+*   **Blockchain Interaction**: Viem
+*   **Styling**: TailwindCSS, shadcn-ui, Lucide Icons
+*   **Off-Chain Backend**: Supabase (Edge Functions & Database for view counts)
 
-## Can I connect a custom domain to my Lovable project?
+## Local Development
 
-Yes, you can!
+To run this project locally, you will need Node.js and `pnpm` installed.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1.  **Clone the Repository**
+    ```sh
+    ```bash
+git clone https://github.com/samuelchimmy/base-story-flow.git
+cd base-story-flow
+    ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+2.  **Install Dependencies**
+    ```sh
+    pnpm install
+    ```
+
+3.  **Set Up Environment Variables**
+    *   Create a `.env` file in the project root.
+    *   You will need to populate it with your own keys for the Supabase and Coinbase Developer Platform (for the USDC faucet). See the Supabase and CDP documentation for details on obtaining these.
+    ```
+    # Supabase (for view counts)
+    VITE_SUPABASE_URL="..."
+    VITE_SUPABASE_ANON_KEY="..."
+    VITE_SUPABASE_INCREMENT_VIEW_URL="..."
+
+    # Supabase Edge Functions (server-side)
+    # These are set in the Supabase dashboard, not here
+    # SUPABASE_SERVICE_ROLE_KEY="..."
+    
+    # Coinbase Faucet API (server-side)
+    # These are set in the Supabase dashboard, not here
+    # CDP_API_KEY_ID="..."
+    # CDP_API_KEY_SECRET="..."
+    # CDP_WALLET_SECRET="..."
+    ```
+
+4.  **Run the Development Server**
+    ```sh
+    pnpm dev
+    ```
+
+## Credit
+
+This project was built with 💙 by **Jadeofwallstreet**.
+
+*   **Portfolio:** [https://www.0xnotes.lol/](https://www.0xnotes.lol/)
+*   **X (Twitter):** [https://x.com/MetisCharter](https://x.com/MetisCharter)
