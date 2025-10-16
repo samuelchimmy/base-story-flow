@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
+// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-// Import USDC config, but we will now use transfer() instead of approve()
-import { USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config'; // Keep for handleLove
+// --- FIX #2: Import all necessary config from your updated config file ---
+import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
+
 
 export interface Story {
   id: string;
@@ -17,7 +18,7 @@ export interface Story {
   loves: number;
   views: number;
   loved: boolean;
-  deleted?: boolean;
+  deleted?: boolean; // Add the optional deleted flag from the new contract
 }
 
 interface StoryCardProps {
@@ -31,17 +32,76 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
+  // Since we parked the view count issue, we will remove its related logic for now
+  // to ensure the component is clean and works.
+  // const [hasBeenViewed, setHasBeenViewed] = useState(false);
+  // useEffect(() => { ... }, []);
+
   const needsExpansion = story.content.length > maxPreviewLength;
   const displayContent = needsExpansion && !isExpanded
     ? story.content.slice(0, maxPreviewLength) + '...'
     : story.content;
 
-  const formatTimestamp = (date: Date) => { /* ... same as before ... */ };
-  const handleShare = () => { /* ... same as before ... */ };
-  const handleLove = async () => { /* ... same as before ... */ };
+  const formatTimestamp = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
 
-  // --- THE FINAL, CORRECT handleTip FUNCTION ---
-  // This version replicates the logic from the official demo app.
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes}m ago`;
+  };
+
+  const handleShare = () => {
+    const url = window.location.href + `?story=${story.id}`;
+    const text = `Check out this story on BaseStory: ${story.content.slice(0, 100)}...`;
+    
+    const shareOptions = [
+      {
+        name: 'Twitter',
+        url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      },
+      {
+        name: 'Farcaster',
+        url: `https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}`,
+      },
+    ];
+
+    window.open(shareOptions[0].url, '_blank');
+  };
+
+  const handleLove = async () => {
+    if (!isConnected || isProcessing) {
+      if (!isConnected) toast.error('Please connect your wallet first');
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const calldata = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'loveStory',
+        args: [BigInt(story.id)],
+      });
+      
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: calldata,
+      }]);
+      
+      toast.success('Story loved! ❤️');
+      await refetchStories();
+    } catch (error) {
+      console.error('Failed to love story:', error);
+      toast.error('Failed to love story. You may have already loved it.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // --- FIX #3: Complete rewrite of the handleTip function for USDC ---
   const handleTip = async () => {
     if (!isConnected || isProcessing) {
       if (!isConnected) toast.error('Please connect your wallet first');
@@ -49,59 +109,44 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
     
     setIsProcessing(true);
-    const tipToast = toast.loading('Sending your 0.1 USDC tip...');
+    const tipToast = toast.loading('Preparing your tip...');
     
     try {
-      // Define the tip amount (0.1 USDC)
+      // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
       const tipAmount = parseUnits('0.1', 6);
 
-      // This is a minimal ERC-20 ABI containing only the `transfer` function.
-      const transferAbi = [{
-        "constant": false,
-        "inputs": [
-          { "name": "_to", "type": "address" },
-          { "name": "_value", "type": "uint256" }
-        ],
-        "name": "transfer",
-        "outputs": [{ "name": "", "type": "bool" }],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-      }] as const;
-
-      // Encode the calldata for a direct USDC transfer.
-      const calldata = encodeFunctionData({
-        abi: transferAbi,
-        functionName: 'transfer',
-        args: [story.authorAddress, tipAmount], // Arg1: Recipient (the story author), Arg2: Amount
+      // --- Step 1: Approve our smart contract to spend the user's USDC ---
+      toast.loading('Please approve the USDC spending limit...', { id: tipToast });
+      
+      const approveCalldata = encodeFunctionData({
+        abi: USDC_ABI, // Use the USDC ABI
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESS, tipAmount], // Arg1: Spender (our contract), Arg2: Amount
       });
 
-      // Send the transaction directly TO the USDC contract.
-      // Because this is a direct transfer of a token the Sub Account does not have,
-      // the SDK will now correctly trigger the Auto Spend Permissions flow and show the checkbox.
+      // Send the approval transaction TO the USDC contract
       await sendCalls([{
         to: USDC_CONTRACT_ADDRESS,
-        data: calldata,
+        data: approveCalldata,
       }]);
+      
+      toast.success('Approval successful! Now sending your tip...', { id: tipToast });
 
-      // --- Important: We also need to update our contract's tipCount ---
-      // This is a "fire-and-forget" call to our own contract to keep the counts in sync.
-      const incrementTipCountCalldata = encodeFunctionData({
-        abi: CONTRACT_ABI,
-        functionName: 'tipStory', // We will re-purpose this function slightly
+      // --- Step 2: Call our smart contract to execute the tip ---
+      const tipCalldata = encodeFunctionData({
+        abi: CONTRACT_ABI, // Use our BaseStory ABI
+        functionName: 'tipStory', // The new function in our contract
         args: [BigInt(story.id)],
       });
-      
-      // We send this as a separate, silent transaction
-      // Note: This assumes your `tipStory` function in the contract still increments the count.
-      // If it fails, the user won't see an error, but the count might be off.
-      // This is a trade-off for getting the checkbox to appear.
-      sendCalls([{ to: CONTRACT_ADDRESS, data: incrementTipCountCalldata }]);
+
+      // Send the tipping transaction TO our BaseStory contract
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: tipCalldata,
+      }]);
       
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
-      
-      // Give the blockchain a moment before refetching
-      setTimeout(() => refetchStories(), 2000);
+      await refetchStories();
 
     } catch (error) {
       console.error('Failed to send tip:', error);
@@ -114,14 +159,48 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
+  // If story is marked as deleted, don't render it
   if (story.deleted) {
     return null;
   }
 
   return (
     <article className="bg-card border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all hover:shadow-md">
-       {/* ... the rest of your JSX remains exactly the same ... */}
-       <div className="flex items-center gap-3 sm:gap-4 text-muted-foreground">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+          <span className="text-sm sm:text-base font-medium text-muted-foreground">
+            {story.author.charAt(0)}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-sm sm:text-base text-foreground">
+              {story.author}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatTimestamp(story.timestamp)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-sm sm:text-base text-foreground whitespace-pre-wrap break-words">
+          {displayContent}
+        </p>
+        {needsExpansion && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 text-primary hover:text-primary/80 p-0 h-auto text-xs sm:text-sm"
+          >
+            {isExpanded ? 'Show Less' : 'View More'}
+          </Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 sm:gap-4 text-muted-foreground">
         <button
           onClick={handleLove}
           className="flex items-center gap-1.5 sm:gap-2 transition-colors hover:text-primary group"
@@ -143,7 +222,20 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
           <Send className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
           <span className="text-xs sm:text-sm">Tip 0.1 USDC</span>
         </button>
-        {/* ... */}
+
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-1.5 sm:gap-2 transition-colors hover:text-primary group"
+          aria-label="Share story"
+        >
+          <Share2 className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-xs sm:text-sm">Share</span>
+        </button>
+
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="text-xs sm:text-sm">{story.views}</span>
+        </div>
       </div>
     </article>
   );
