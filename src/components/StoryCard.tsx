@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
+// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS } from '../config';
+// --- FIX #2: Import all necessary config from your updated config file ---
+import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
+
 
 export interface Story {
   id: string;
@@ -15,7 +18,7 @@ export interface Story {
   loves: number;
   views: number;
   loved: boolean;
-  deleted?: boolean;
+  deleted?: boolean; // Add the optional deleted flag from the new contract
 }
 
 interface StoryCardProps {
@@ -29,6 +32,11 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
+  // Since we parked the view count issue, we will remove its related logic for now
+  // to ensure the component is clean and works.
+  // const [hasBeenViewed, setHasBeenViewed] = useState(false);
+  // useEffect(() => { ... }, []);
+
   const needsExpansion = story.content.length > maxPreviewLength;
   const displayContent = needsExpansion && !isExpanded
     ? story.content.slice(0, maxPreviewLength) + '...'
@@ -39,6 +47,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(hours / 24);
+
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     const minutes = Math.floor(diff / (1000 * 60));
@@ -48,10 +57,18 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const handleShare = () => {
     const url = window.location.href + `?story=${story.id}`;
     const text = `Check out this story on BaseStory: ${story.content.slice(0, 100)}...`;
+    
     const shareOptions = [
-      { name: 'Twitter', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
-      { name: 'Farcaster', url: `https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}` },
+      {
+        name: 'Twitter',
+        url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      },
+      {
+        name: 'Farcaster',
+        url: `https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}`,
+      },
     ];
+
     window.open(shareOptions[0].url, '_blank');
   };
 
@@ -60,6 +77,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       if (!isConnected) toast.error('Please connect your wallet first');
       return;
     }
+    
     setIsProcessing(true);
     try {
       const calldata = encodeFunctionData({
@@ -67,8 +85,13 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
         functionName: 'loveStory',
         args: [BigInt(story.id)],
       });
-      await sendCalls([{ to: CONTRACT_ADDRESS, data: calldata }]);
-      toast.success('Story loved! 💙');
+      
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: calldata,
+      }]);
+      
+      toast.success('Story loved! ❤️');
       await refetchStories();
     } catch (error) {
       console.error('Failed to love story:', error);
@@ -78,40 +101,52 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
-  // --- THE CORRECTED handleTip FUNCTION ---
+  // --- FIX #3: Complete rewrite of the handleTip function for USDC ---
   const handleTip = async () => {
     if (!isConnected || isProcessing) {
       if (!isConnected) toast.error('Please connect your wallet first');
       return;
     }
+    
     setIsProcessing(true);
-    const tipToast = toast.loading('Sending your 0.1 USDC tip...');
+    const tipToast = toast.loading('Preparing your tip...');
+    
     try {
+      // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
       const tipAmount = parseUnits('0.1', 6);
-      const transferAbi = [{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}] as const;
 
-      const transferCalldata = encodeFunctionData({
-        abi: transferAbi,
-        functionName: 'transfer',
-        args: [story.authorAddress, tipAmount],
+      // --- Step 1: Approve our smart contract to spend the user's USDC ---
+      toast.loading('Please approve the USDC spending limit...', { id: tipToast });
+      
+      const approveCalldata = encodeFunctionData({
+        abi: USDC_ABI, // Use the USDC ABI
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESS, tipAmount], // Arg1: Spender (our contract), Arg2: Amount
       });
 
-      const incrementTipCountCalldata = encodeFunctionData({
-        abi: CONTRACT_ABI,
-        functionName: 'tipStory', // This function in your contract now just increments the count
+      // Send the approval transaction TO the USDC contract
+      await sendCalls([{
+        to: USDC_CONTRACT_ADDRESS,
+        data: approveCalldata,
+      }]);
+      
+      toast.success('Approval successful! Now sending your tip...', { id: tipToast });
+
+      // --- Step 2: Call our smart contract to execute the tip ---
+      const tipCalldata = encodeFunctionData({
+        abi: CONTRACT_ABI, // Use our BaseStory ABI
+        functionName: 'tipStory', // The new function in our contract
         args: [BigInt(story.id)],
       });
 
-      // --- BATCH BOTH CALLS IN ONE REQUEST ---
-      // The SDK will analyze this batch, see the `transfer` call, detect the insufficient
-      // USDC balance in the Sub Account, and trigger the Auto Spend Permissions checkbox.
-      await sendCalls([
-        { to: USDC_CONTRACT_ADDRESS, data: transferCalldata },
-        { to: CONTRACT_ADDRESS, data: incrementTipCountCalldata }
-      ]);
+      // Send the tipping transaction TO our BaseStory contract
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: tipCalldata,
+      }]);
       
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
-      setTimeout(() => refetchStories(), 2000);
+      await refetchStories();
 
     } catch (error) {
       console.error('Failed to send tip:', error);
@@ -124,11 +159,11 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
+  // If story is marked as deleted, don't render it
   if (story.deleted) {
     return null;
   }
 
-  // --- RESTORED: Your full, original JSX/TSX layout ---
   return (
     <article className="bg-card border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all hover:shadow-md">
       <div className="flex items-start gap-3 mb-3">
