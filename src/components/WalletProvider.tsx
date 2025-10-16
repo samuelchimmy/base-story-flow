@@ -83,16 +83,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const fetchBalance = useCallback(async () => {
     if (!provider || !universalAddress) {
       console.log('Cannot fetch balance: missing provider or address');
+      setBalance('0.00');
       return;
     }
 
     try {
-      // ERC-20 balanceOf function signature: 0x70a08231
-      // Encode the address parameter (32 bytes, left-padded)
-      const addressParam = universalAddress.substring(2).toLowerCase().padStart(64, '0');
-      const balanceData = `0x70a08231${addressParam}` as `0x${string}`;
+      // Construct the calldata for balanceOf(address) function
+      // 4-byte function selector (0x70a08231) + 32-byte padded address
+      const balanceData = `0x70a08231000000000000000000000000${universalAddress.substring(2)}`;
       
       console.log('Fetching USDC balance for:', universalAddress);
+      console.log('Calldata:', balanceData);
       
       const balanceHex = await provider.request({
         method: 'eth_call',
@@ -107,12 +108,16 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Balance response (hex):', balanceHex);
       
-      const balanceRaw = BigInt(balanceHex);
-      const balanceUsdc = (Number(balanceRaw) / 1e6).toFixed(2); // USDC has 6 decimals
-      setBalance(balanceUsdc);
-      console.log(`USDC Balance updated: ${balanceUsdc} USDC`);
+      // Convert hex result to BigInt (handles large numbers correctly)
+      const balanceWei = BigInt(balanceHex);
+      
+      // Format with USDC's 6 decimals
+      const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
+      
+      setBalance(formattedBalance);
+      console.log(`✅ USDC Balance updated: ${formattedBalance} USDC`);
     } catch (error) {
-      console.error('Failed to fetch USDC balance:', error);
+      console.error('❌ Failed to fetch USDC balance:', error);
       setBalance('0.00');
     }
   }, [provider, universalAddress]);
