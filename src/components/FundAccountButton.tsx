@@ -51,10 +51,11 @@ export const FundAccountButton = () => {
           } : undefined,
         });
 
-        // Refresh balance after a few seconds
+        // Refresh balance immediately and after delay
+        fetchBalance();
         setTimeout(() => {
           fetchBalance();
-        }, 5000);
+        }, 3000);
       }
     } catch (error) {
       console.error('Faucet error:', error);

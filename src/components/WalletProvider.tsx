@@ -81,12 +81,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchBalance = useCallback(async () => {
-    if (!provider || !universalAddress) return;
+    if (!provider || !universalAddress) {
+      console.log('Cannot fetch balance: missing provider or address');
+      return;
+    }
 
     try {
-      // Fetch USDC balance instead of ETH
-      // Call balanceOf(address) function on USDC contract
-      const balanceData = `0x70a08231000000000000000000000000${universalAddress.substring(2)}`;
+      // ERC-20 balanceOf function signature: 0x70a08231
+      // Encode the address parameter (32 bytes, left-padded)
+      const addressParam = universalAddress.substring(2).toLowerCase().padStart(64, '0');
+      const balanceData = `0x70a08231${addressParam}` as `0x${string}`;
+      
+      console.log('Fetching USDC balance for:', universalAddress);
       
       const balanceHex = await provider.request({
         method: 'eth_call',
@@ -99,10 +105,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         ],
       }) as string;
       
-      const balanceRaw = parseInt(balanceHex, 16);
-      const balanceUsdc = (balanceRaw / 1e6).toFixed(2); // USDC has 6 decimals
+      console.log('Balance response (hex):', balanceHex);
+      
+      const balanceRaw = BigInt(balanceHex);
+      const balanceUsdc = (Number(balanceRaw) / 1e6).toFixed(2); // USDC has 6 decimals
       setBalance(balanceUsdc);
-      console.log(`USDC Balance: ${balanceUsdc} USDC`);
+      console.log(`USDC Balance updated: ${balanceUsdc} USDC`);
     } catch (error) {
       console.error('Failed to fetch USDC balance:', error);
       setBalance('0.00');
@@ -237,6 +245,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       connect();
     }
   }, [provider, connect]);
+
+  // Poll balance every 10 seconds when connected
+  useEffect(() => {
+    if (!isConnected || !universalAddress) return;
+
+    // Initial fetch
+    fetchBalance();
+
+    // Set up polling interval
+    const intervalId = setInterval(() => {
+      fetchBalance();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(intervalId);
+  }, [isConnected, universalAddress, fetchBalance]);
 
   return (
     <WalletContext.Provider
