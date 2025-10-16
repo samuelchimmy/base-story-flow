@@ -18,7 +18,13 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {
-    setIsLoading(true);
+    // --- THE FIX IS HERE ---
+    // Only set the main loading state to true if there are no stories on screen yet.
+    // This prevents the flicker on subsequent background refreshes.
+    if (stories.length === 0) {
+      setIsLoading(true);
+    }
+    
     try {
       const data = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
@@ -26,16 +32,20 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
         functionName: 'getAllStories',
       });
       
+      // Filter out any stories marked as deleted by the new contract
+      const activeStories = data.filter(story => !story.deleted);
+
       // Transform contract data to Story format
-      const transformedStories: Story[] = data.map((story) => ({
+      const transformedStories: Story[] = activeStories.map((story) => ({
         id: story.id.toString(),
         content: story.content,
         author: `${story.author.slice(0, 6)}...${story.author.slice(-4)}`,
         authorAddress: story.author,
         timestamp: new Date(Number(story.timestamp) * 1000),
         loves: Number(story.loveCount),
-        views: Math.floor(Math.random() * 200) + 50, // Mock views for now
+        views: Math.floor(Math.random() * 200) + 50, // We will fix this next
         loved: false, // TODO: Check if current user has loved
+        deleted: story.deleted,
       }));
       
       setStories(transformedStories);
@@ -43,9 +53,13 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
       console.error('Failed to fetch stories:', error);
       toast.error('Failed to load stories from blockchain');
     } finally {
+      // Always set loading to false after a fetch, to remove the initial spinner
       setIsLoading(false);
     }
-  }, []);
+  // --- THE FIX IS HERE ---
+  // We add `stories.length` as a dependency. This ensures the `fetchStories` function
+  // always knows the current number of stories when it runs the check above.
+  }, [stories.length]);
 
   useEffect(() => {
     fetchStories();
