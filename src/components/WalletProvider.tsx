@@ -1,10 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { createBaseAccountSDK } from '@base-org/account';
-// --- FIX #1: Change 'base' to 'baseSepolia' to target the correct testnet ---
 import { baseSepolia } from 'viem/chains'; 
 import type { Address } from 'viem';
 
-const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const; // Base Sepolia USDC
+const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
 
 interface SubAccount {
   address: Address;
@@ -19,11 +18,11 @@ interface WalletContextType {
   username: string;
   balance: string | null;
   loading: boolean;
+  error: string | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
   fetchBalance: () => Promise<void>;
-  // provider prop can be added here if needed by other components
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -52,57 +51,69 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [username, setUsername] = useState('');
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<any>(null);
+  
+  // Use refs to track mounted state and prevent race conditions
+  const isMounted = useRef(true);
+  const isConnecting = useRef(false);
 
   // Initialize Base Account SDK
   useEffect(() => {
     const initializeSDK = async () => {
       try {
-        // Create SDK instance with Sub Account auto-creation enabled
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          // --- FIX #1 (continued): Use baseSepolia.id here ---
           appChainIds: [baseSepolia.id], 
           subAccounts: {
-            creation: 'on-connect', // Auto-create sub account on connect
-            defaultAccount: 'sub',   // Use sub account by default
+            creation: 'on-connect',
+            defaultAccount: 'sub',
           },
         });
 
-        // Get the EIP-1193 provider
         const providerInstance = sdkInstance.getProvider();
-        setProvider(providerInstance);
-        
-        console.log('Base Account SDK initialized successfully');
+        if (isMounted.current) {
+          setProvider(providerInstance);
+          console.log('Base Account SDK initialized successfully');
+        }
       } catch (error) {
         console.error('Failed to initialize Base Account SDK:', error);
+        if (isMounted.current) {
+          setError('Failed to initialize wallet SDK');
+        }
       }
     };
 
     initializeSDK();
+
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
+  // Stable fetchBalance using useCallback with minimal dependencies
   const fetchBalance = useCallback(async () => {
     console.log('[DEBUG] 🔍 fetchBalance called');
-    console.log('[DEBUG] Provider exists:', !!provider);
-    console.log('[DEBUG] universalAddress:', universalAddress);
     
-    if (!provider || !universalAddress) {
-      console.log('[DEBUG] ❌ Cannot fetch balance: missing provider or address');
-      console.log('[DEBUG] Provider:', !!provider, 'Address:', universalAddress);
+    if (!provider) {
+      console.log('[DEBUG] ❌ Cannot fetch balance: missing provider');
+      setBalance('0.00');
+      return;
+    }
+
+    // Get current address from state at call time
+    const currentAddress = universalAddress;
+    if (!currentAddress) {
+      console.log('[DEBUG] ❌ Cannot fetch balance: no address');
       setBalance('0.00');
       return;
     }
 
     try {
-      // Construct the calldata for balanceOf(address) function
-      // 4-byte function selector (0x70a08231) + 32-byte padded address
-      const balanceData = `0x70a08231000000000000000000000000${universalAddress.substring(2)}`;
+      const balanceData = `0x70a08231000000000000000000000000${currentAddress.substring(2)}`;
       
-      console.log('[DEBUG] 📞 Fetching USDC balance for:', universalAddress);
-      console.log('[DEBUG] Calldata:', balanceData);
-      console.log('[DEBUG] USDC Contract:', USDC_CONTRACT_ADDRESS);
+      console.log('[DEBUG] 📞 Fetching USDC balance for:', currentAddress);
       
       const balanceHex = await provider.request({
         method: 'eth_call',
@@ -115,21 +126,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         ],
       }) as string;
       
-      console.log('[DEBUG] 📥 Raw hex balance from contract:', balanceHex);
+      console.log('[DEBUG] 📥 Raw hex balance:', balanceHex);
       
-      // Convert hex result to BigInt (handles large numbers correctly)
       const balanceWei = BigInt(balanceHex);
-      console.log('[DEBUG] 🔢 Balance as BigInt:', balanceWei.toString());
-      
-      // Format with USDC's 6 decimals
       const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
+      
       console.log('[DEBUG] 💰 Formatted balance:', formattedBalance, 'USDC');
       
-      setBalance(formattedBalance);
-      console.log('[DEBUG] ✅ Balance state updated to:', formattedBalance, 'USDC');
+      if (isMounted.current) {
+        setBalance(formattedBalance);
+      }
     } catch (error) {
       console.error('❌ Failed to fetch USDC balance:', error);
-      setBalance('0.00');
+      if (isMounted.current) {
+        setBalance('0.00');
+      }
     }
   }, [provider, universalAddress]);
 
@@ -138,88 +149,96 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     
     if (!provider) {
       console.error('[DEBUG] ❌ Provider not initialized');
+      setError('Wallet provider not ready');
       return;
     }
 
+    if (isConnecting.current) {
+      console.log('[DEBUG] ⏸️ Connection already in progress');
+      return;
+    }
+
+    isConnecting.current = true;
     setLoading(true);
+    setError(null);
+
     try {
       console.log('[DEBUG] 📡 Requesting accounts from provider...');
       
-      // Request account connection - this will trigger Sub Account creation
       const accounts = await provider.request({
         method: 'eth_requestAccounts',
         params: [],
       }) as Address[];
 
       console.log('[DEBUG] 📋 Accounts received:', accounts);
-      console.log('[DEBUG] Number of accounts:', accounts.length);
 
-      if (accounts.length > 0) {
-        const universal = accounts[0];
-        console.log('[DEBUG] 🎯 Universal Address:', universal);
+      if (!isMounted.current) {
+        console.log('[DEBUG] Component unmounted, aborting connection');
+        return;
+      }
+
+      // THIS IS THE NEW, CORRECTED REPLACEMENT CODE
+      if (accounts.length > 1) {
+        // With `defaultAccount: 'sub'`, the order is [Sub Account, Universal Account].
+        const subAcc = accounts[0];
+        const universalAcc = accounts[1];
+        console.log('[DEBUG] 🎯 Sub Account (default) found:', subAcc);
+        console.log('[DEBUG] 🎯 Universal Account (parent) found:', universalAcc);
         
-        setUniversalAddress(universal);
-        console.log('[DEBUG] ✓ universalAddress state updated');
+        // Correctly assign the addresses to the state variables
+        setSubAccountAddress(subAcc);
+        setUniversalAddress(universalAcc);
+        console.log('[DEBUG] ✓ State updated for both accounts.');
         
         setIsConnected(true);
         console.log('[DEBUG] ✓ isConnected set to true');
         
         setUsername(generateUsername());
         console.log('[DEBUG] ✓ Username generated');
-
-        // Check for Sub Account (should be auto-created with 'on-connect' setting)
-        try {
-          console.log('[DEBUG] 🔍 Checking for Sub Account...');
-          
-          const response = await provider.request({
-            method: 'wallet_getSubAccounts',
-            params: [
-              {
-                account: universal,
-                domain: window.location.origin,
-              },
-            ],
-          }) as { subAccounts: SubAccount[] };
-
-          console.log('[DEBUG] Sub Account response:', response);
-
-          if (response.subAccounts && response.subAccounts.length > 0) {
-            const subAcc = response.subAccounts[0];
-            setSubAccountAddress(subAcc.address);
-            console.log('[DEBUG] ✓ Sub Account found:', subAcc.address);
-          } else {
-            // If no sub account exists, create one manually
-            console.log('[DEBUG] ⚠️ No Sub Account found, creating one...');
-            const newSubAccount = await provider.request({
-              method: 'wallet_addSubAccount',
-              params: [
-                {
-                  account: {
-                    type: 'create',
-                  },
-                },
-              ],
-            }) as SubAccount;
-            
-            setSubAccountAddress(newSubAccount.address);
-            console.log('[DEBUG] ✓ Sub Account created:', newSubAccount.address);
-          }
-        } catch (subAccountError) {
-          console.error('[DEBUG] ❌ Failed to get/create Sub Account:', subAccountError);
-        }
-
         // Store connection state
         localStorage.setItem('walletConnected', 'true');
         console.log('[DEBUG] ✓ Connection state saved to localStorage');
         
-        // Fetch balance
+        // Fetch balance for the now-correct Universal Address
         console.log('[DEBUG] 💵 Calling fetchBalance() after connection...');
-        fetchBalance();
+        // We call fetchBalance directly here since the state update might not be immediate
+        // for the useEffect that polls.
+        if (universalAcc) {
+            // Manually create a temporary fetcher to ensure we use the new address
+            const fetcher = async () => {
+                try {
+                    const balanceData = `0x70a08231000000000000000000000000${universalAcc.substring(2)}`;
+                    const balanceHex = await provider.request({
+                        method: 'eth_call',
+                        params: [{ to: USDC_CONTRACT_ADDRESS, data: balanceData }, 'latest'],
+                    }) as string;
+                    const balanceWei = BigInt(balanceHex);
+                    const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
+                    setBalance(formattedBalance);
+                    console.log('[DEBUG] ✅ Initial balance fetched successfully:', formattedBalance);
+                } catch (e) {
+                    console.error('Initial fetchBalance failed:', e);
+                }
+            };
+            fetcher();
+        }
+      } else {
+        // Fallback for unexpected account array structures
+        console.error('[DEBUG] ❌ Expected at least 2 accounts but received:', accounts.length);
+        if (accounts.length > 0) setUniversalAddress(accounts[0]); // Best guess
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+      if (isMounted.current) {
+        setError('Failed to connect wallet');
+        // Clear localStorage on error to prevent auto-reconnect loops
+        localStorage.removeItem('walletConnected');
+      }
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
+      isConnecting.current = false;
     }
   }, [provider, fetchBalance]);
 
@@ -229,9 +248,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setSubAccountAddress(null);
     setUsername('');
     setBalance(null);
+    setError(null);
     localStorage.removeItem('walletConnected');
+    console.log('[DEBUG] 🔌 Disconnected');
   }, []);
-
 
   const sendCalls = useCallback(async (
     calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>
@@ -245,16 +265,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         method: 'wallet_sendCalls',
         params: [
           {
-            // --- FIX #2 & #3: Simplify payload and use correct chainId ---
             version: '2.0',
-            chainId: `0x${baseSepolia.id.toString(16)}`, // Use baseSepolia.id
+            chainId: `0x${baseSepolia.id.toString(16)}`,
             from: subAccountAddress,
             calls: calls.map(call => ({
               to: call.to,
               data: call.data || '0x',
               value: call.value || '0x0',
             })),
-            // 'atomicRequired' and 'capabilities' fields removed to fix "version" error
           },
         ],
       }) as string;
@@ -270,7 +288,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Auto-connect on mount if previously connected
   useEffect(() => {
     const wasConnected = localStorage.getItem('walletConnected');
-    if (wasConnected === 'true' && provider) {
+    if (wasConnected === 'true' && provider && !isConnecting.current) {
+      console.log('[DEBUG] 🔄 Auto-connecting...');
       connect();
     }
   }, [provider, connect]);
@@ -278,26 +297,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Poll balance every 10 seconds when connected
   useEffect(() => {
     console.log('[DEBUG] 🔄 Balance polling useEffect triggered');
-    console.log('[DEBUG] isConnected:', isConnected);
-    console.log('[DEBUG] universalAddress:', universalAddress);
+    console.log('[DEBUG] isConnected:', isConnected, 'universalAddress:', universalAddress);
     
     if (!isConnected || !universalAddress) {
-      console.log('[DEBUG] ⏸️ Not polling: wallet not connected or no address');
+      console.log('[DEBUG] ⏸️ Not polling: wallet not connected');
       return;
     }
 
-    // Initial fetch
     console.log('[DEBUG] ▶️ Starting balance polling...');
     fetchBalance();
 
-    // Set up polling interval
     const intervalId = setInterval(() => {
-      console.log('[DEBUG] ⏰ Polling interval triggered - fetching balance...');
+      console.log('[DEBUG] ⏰ Polling interval triggered');
       fetchBalance();
-    }, 10000); // Poll every 10 seconds
+    }, 10000);
 
     return () => {
-      console.log('[DEBUG] 🛑 Cleaning up balance polling interval');
+      console.log('[DEBUG] 🛑 Cleaning up balance polling');
       clearInterval(intervalId);
     };
   }, [isConnected, universalAddress, fetchBalance]);
@@ -311,6 +327,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         username,
         balance,
         loading,
+        error,
         connect,
         disconnect,
         sendCalls,
