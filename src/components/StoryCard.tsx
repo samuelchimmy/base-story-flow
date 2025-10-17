@@ -7,6 +7,7 @@ import { parseUnits, type Address, encodeFunctionData } from 'viem';
 import { toast } from 'sonner';
 // --- FIX #2: Import all necessary config from your updated config file ---
 import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
+import { supabase } from '@/integrations/supabase/client';
 
 
 export interface Story {
@@ -29,13 +30,37 @@ interface StoryCardProps {
 export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [viewCount, setViewCount] = useState(story.views);
+  const [hasBeenViewed, setHasBeenViewed] = useState(false);
   const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
-  // Since we parked the view count issue, we will remove its related logic for now
-  // to ensure the component is clean and works.
-  // const [hasBeenViewed, setHasBeenViewed] = useState(false);
-  // useEffect(() => { ... }, []);
+  // Increment view count when story is viewed
+  useEffect(() => {
+    if (!hasBeenViewed) {
+      const incrementView = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('increment-view', {
+            body: { storyId: parseInt(story.id) },
+          });
+
+          if (error) {
+            console.error('Error incrementing view:', error);
+            return;
+          }
+
+          if (data?.viewCount) {
+            setViewCount(data.viewCount);
+          }
+        } catch (error) {
+          console.error('Failed to increment view:', error);
+        }
+      };
+
+      incrementView();
+      setHasBeenViewed(true);
+    }
+  }, [story.id, hasBeenViewed]);
 
   const needsExpansion = story.content.length > maxPreviewLength;
   const displayContent = needsExpansion && !isExpanded
@@ -234,7 +259,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
           <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="text-xs sm:text-sm">{story.views}</span>
+          <span className="text-xs sm:text-sm">{viewCount}</span>
         </div>
       </div>
     </article>

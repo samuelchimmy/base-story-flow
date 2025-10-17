@@ -4,14 +4,16 @@ import { Button } from './ui/button';
 import { publicClient } from '../viemClient';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 type SortType = 'latest' | 'loved';
 
 interface StoryFeedProps {
   onPostClick: () => void;
+  onAMAClick: () => void;
 }
 
-export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
+export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortType>('latest');
@@ -35,6 +37,16 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
       // Filter out any stories marked as deleted by the new contract
       const activeStories = data.filter(story => !story.deleted);
 
+      // Fetch view counts from Supabase
+      const { data: viewData } = await supabase
+        .from('story_views')
+        .select('story_id, view_count');
+
+      // Create a map of story_id to view_count
+      const viewCountMap = new Map(
+        (viewData || []).map(item => [item.story_id.toString(), item.view_count])
+      );
+
       // Transform contract data to Story format
       const transformedStories: Story[] = activeStories.map((story) => ({
         id: story.id.toString(),
@@ -43,7 +55,7 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
         authorAddress: story.author,
         timestamp: new Date(Number(story.timestamp) * 1000),
         loves: Number(story.loveCount),
-        views: Math.floor(Math.random() * 200) + 50, // We will fix this next
+        views: viewCountMap.get(story.id.toString()) || 0, // Get real view count from database
         loved: false, // TODO: Check if current user has loved
         deleted: story.deleted,
       }));
@@ -104,6 +116,14 @@ export const StoryFeed = ({ onPostClick }: StoryFeedProps) => {
             className="text-xs sm:text-sm"
           >
             Post
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onAMAClick}
+            className="text-xs sm:text-sm"
+          >
+            AMA
           </Button>
         </div>
 

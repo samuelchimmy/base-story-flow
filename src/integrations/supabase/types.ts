@@ -14,13 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ama_messages: {
+        Row: {
+          ama_id: number
+          content: string
+          created_at: string | null
+          id: number
+          love_count: number | null
+          sender_sub_account: string
+          tip_count: number | null
+        }
+        Insert: {
+          ama_id: number
+          content: string
+          created_at?: string | null
+          id?: never
+          love_count?: number | null
+          sender_sub_account: string
+          tip_count?: number | null
+        }
+        Update: {
+          ama_id?: number
+          content?: string
+          created_at?: string | null
+          id?: never
+          love_count?: number | null
+          sender_sub_account?: string
+          tip_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ama_messages_ama_id_fkey"
+            columns: ["ama_id"]
+            isOneToOne: false
+            referencedRelation: "amas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amas: {
+        Row: {
+          created_at: string | null
+          creator_address: string
+          description: string | null
+          heading: string
+          id: number
+          is_public: boolean | null
+          requires_tip: boolean | null
+          tip_amount: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_address: string
+          description?: string | null
+          heading: string
+          id?: never
+          is_public?: boolean | null
+          requires_tip?: boolean | null
+          tip_amount?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_address?: string
+          description?: string | null
+          heading?: string
+          id?: never
+          is_public?: boolean | null
+          requires_tip?: boolean | null
+          tip_amount?: number | null
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          story_id: number
+          view_count: number
+        }
+        Insert: {
+          story_id: number
+          view_count?: number
+        }
+        Update: {
+          story_id?: number
+          view_count?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view_count: {
+        Args: { story_id_to_inc: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

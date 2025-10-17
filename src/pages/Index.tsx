@@ -5,9 +5,11 @@ import { Hero } from '@/components/Hero';
 import { CreatePost } from '@/components/CreatePost';
 import { StoryFeed } from '@/components/StoryFeed';
 import { Footer } from '@/components/Footer';
+import { CreateAMAModal } from '@/components/CreateAMAModal';
 
 const Index = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showCreateAMA, setShowCreateAMA] = useState(false);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   const refetchStories = async () => {
@@ -27,8 +29,13 @@ const Index = () => {
                 refetchStories={refetchStories}
               />
             )}
+            <CreateAMAModal 
+              open={showCreateAMA}
+              onOpenChange={setShowCreateAMA}
+            />
             <StoryFeed 
               onPostClick={() => setShowCreatePost(true)}
+              onAMAClick={() => setShowCreateAMA(true)}
               key={refetchTrigger}
             />
           </div>
