@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
-// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-// --- FIX #2: Import all necessary config from your updated config file ---
 import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
 
 
@@ -18,7 +16,7 @@ export interface Story {
   loves: number;
   views: number;
   loved: boolean;
-  deleted?: boolean; // Add the optional deleted flag from the new contract
+  deleted?: boolean; 
 }
 
 interface StoryCardProps {
@@ -32,8 +30,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const { isConnected, sendCalls } = useWallet();
   const maxPreviewLength = 280;
 
-  // Since we parked the view count issue, we will remove its related logic for now
-  // to ensure the component is clean and works.
+  // --- PRESERVED: Your commented-out view count logic remains untouched ---
   // const [hasBeenViewed, setHasBeenViewed] = useState(false);
   // useEffect(() => { ... }, []);
 
@@ -101,7 +98,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
-  // --- FIX #3: Complete rewrite of the handleTip function for USDC ---
+  // --- THIS IS THE ONLY FUNCTION THAT HAS BEEN REPLACED ---
   const handleTip = async () => {
     if (!isConnected || isProcessing) {
       if (!isConnected) toast.error('Please connect your wallet first');
@@ -109,44 +106,44 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
     
     setIsProcessing(true);
-    const tipToast = toast.loading('Preparing your tip...');
+    const tipToast = toast.loading('Preparing your 0.1 USDC tip...');
     
     try {
-      // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
       const tipAmount = parseUnits('0.1', 6);
-
-      // --- Step 1: Approve our smart contract to spend the user's USDC ---
-      toast.loading('Please approve the USDC spending limit...', { id: tipToast });
       
-      const approveCalldata = encodeFunctionData({
-        abi: USDC_ABI, // Use the USDC ABI
-        functionName: 'approve',
-        args: [CONTRACT_ADDRESS, tipAmount], // Arg1: Spender (our contract), Arg2: Amount
+      // Use the minimal USDC ABI for the `transfer` function, as the demo app does.
+      const transferAbi = [{"inputs":[{"name":"to","type":"address"},{"name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}] as const;
+
+      // Encode the direct `transfer` call to the story's author.
+      const transferCalldata = encodeFunctionData({
+        abi: transferAbi,
+        functionName: 'transfer',
+        args: [story.authorAddress, tipAmount],
       });
 
-      // Send the approval transaction TO the USDC contract
-      await sendCalls([{
-        to: USDC_CONTRACT_ADDRESS,
-        data: approveCalldata,
-      }]);
-      
-      toast.success('Approval successful! Now sending your tip...', { id: tipToast });
-
-      // --- Step 2: Call our smart contract to execute the tip ---
-      const tipCalldata = encodeFunctionData({
-        abi: CONTRACT_ABI, // Use our BaseStory ABI
-        functionName: 'tipStory', // The new function in our contract
+      // Also encode the call to increment our own contract's tip counter.
+      const incrementTipCountCalldata = encodeFunctionData({
+        abi: CONTRACT_ABI,
+        functionName: 'tipStory',
         args: [BigInt(story.id)],
       });
 
-      // Send the tipping transaction TO our BaseStory contract
-      await sendCalls([{
-        to: CONTRACT_ADDRESS,
-        data: tipCalldata,
-      }]);
+      // Batch both calls into a single `sendCalls` request.
+      // This is the key: the SDK will see the `transfer` call in the batch,
+      // detect the insufficient USDC balance, and trigger the permission checkbox.
+      await sendCalls([
+        { 
+          to: USDC_CONTRACT_ADDRESS, // First call: Transfer USDC
+          data: transferCalldata 
+        },
+        { 
+          to: CONTRACT_ADDRESS, // Second call: Increment our contract's counter
+          data: incrementTipCountCalldata 
+        }
+      ]);
       
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
-      await refetchStories();
+      setTimeout(() => refetchStories(), 2000);
 
     } catch (error) {
       console.error('Failed to send tip:', error);
@@ -158,14 +155,15 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       setIsProcessing(false);
     }
   };
+  // --- END OF REPLACED FUNCTION ---
 
-  // If story is marked as deleted, don't render it
   if (story.deleted) {
     return null;
   }
 
   return (
     <article className="bg-card border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all hover:shadow-md">
+      {/* ALL of your original JSX is preserved below */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
           <span className="text-sm sm:text-base font-medium text-muted-foreground">
