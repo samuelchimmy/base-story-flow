@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const FundAccountButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { universalAddress, balance, fetchBalance } = useWallet();
+  // --- DEBUG STEP 1: Import subAccountAddress as well ---
+  const { universalAddress, subAccountAddress, balance, fetchBalance } = useWallet();
 
   const currentBalance = parseFloat(balance || '0');
   const hasSufficientBalance = currentBalance > 0.1;
@@ -17,9 +18,16 @@ export const FundAccountButton = () => {
       return;
     }
 
+    // --- DEBUG STEP 2: Add console logs to expose the state ---
+    console.log("--- Faucet Button Clicked: Debug Info ---");
+    console.log("Address being sent to backend:", universalAddress);
+    console.log("For reference, the Sub Account address is:", subAccountAddress);
+    console.log("-----------------------------------------");
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('faucet', {
+        // The code remains the same, sending the `universalAddress` variable
         body: { address: universalAddress },
       });
 
@@ -31,7 +39,6 @@ export const FundAccountButton = () => {
         return;
       }
 
-      // Check if the response contains an error from the function
       if (data?.error) {
         toast.error(data.error, {
           description: data.message || 'Please try again later',
@@ -39,7 +46,6 @@ export const FundAccountButton = () => {
         return;
       }
 
-      // Success response
       if (data?.success) {
         toast.success(data.message || 'USDC sent successfully!', {
           description: data.transactionHash 
@@ -51,7 +57,6 @@ export const FundAccountButton = () => {
           } : undefined,
         });
 
-        // Refresh balance immediately and after delay
         fetchBalance();
         setTimeout(() => {
           fetchBalance();
