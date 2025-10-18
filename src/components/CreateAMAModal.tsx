@@ -63,39 +63,24 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         },
       ]);
 
-      console.log('Transaction sent, calls ID:', callsId);
+      // Wait for confirmation and decode AMACreated event to get real AMA ID
       toast.loading('Waiting for confirmation...', { id: createToast });
 
       let receipt: any;
       let attempts = 0;
-      const maxAttempts = 60; // 2 minutes total (60 * 2 seconds)
-      
-      while (attempts < maxAttempts) {
+      while (attempts < 30) {
         try {
           const calls = await publicClient.getCallsStatus({ id: callsId });
-          console.log(`Attempt ${attempts + 1}/${maxAttempts}, status:`, calls.status);
-          
           if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {
             receipt = calls.receipts[0];
-            console.log('Transaction confirmed! Receipt:', receipt);
             break;
           }
-          
-          if (calls.status === 'REVERTED') {
-            throw new Error('Transaction reverted on-chain');
-          }
-        } catch (error) {
-          console.error('Error checking transaction status:', error);
-        }
-        
+        } catch {}
         await new Promise((r) => setTimeout(r, 2000));
         attempts++;
       }
 
-      if (!receipt) {
-        console.error('Transaction confirmation timeout after', maxAttempts * 2, 'seconds');
-        throw new Error('Transaction confirmation timeout. Please check your wallet or try again.');
-      }
+      if (!receipt) throw new Error('Transaction confirmation timeout');
 
       const amaCreatedLog = receipt.logs.find((log: any) => {
         try {
