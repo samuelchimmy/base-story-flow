@@ -37,11 +37,11 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
     className={cn(
-      "grid overflow-hidden text-sm transition-all data-[state=closed]:grid-rows-[0fr] data-[state=open]:grid-rows-[1fr]",
+      "grid overflow-hidden text-sm transition-all data-[state=closed]:grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] data-[state=closed]:hidden",
       className
     )}
     {...props}
