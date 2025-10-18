@@ -6,7 +6,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatePost } from './CreatePost';
-import { CreateAMAModal } from './CreateAMAModal';
+import { CreateAMAInline } from './CreateAMAInline';
 import { useWallet } from './WalletProvider';
 import { getAllAMAs } from '@/lib/amaHelpers';
 import { useNavigate } from 'react-router-dom';
@@ -163,14 +163,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
           </div>
         );
       case 'ama':
-        return (
-          <div className="max-w-2xl mx-auto animate-fade-in">
-            <CreateAMAModal 
-              open={true}
-              onOpenChange={(open) => !open && setActiveTab('latest')}
-            />
-          </div>
-        );
+        return <CreateAMAInline />;
       case 'sessions':
         return (
           <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
