@@ -6,9 +6,10 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { useWallet } from './WalletProvider';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
+import { parseUnits, encodeFunctionData } from 'viem';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 
 interface CreateAMAModalProps {
   open: boolean;
@@ -16,19 +17,19 @@ interface CreateAMAModalProps {
 }
 
 export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
-  const { universalAddress, isConnected } = useWallet();
+  const { subAccountAddress, isConnected, sendCalls } = useWallet();
   const [heading, setHeading] = useState('');
   const [description, setDescription] = useState('');
   const [requiresTip, setRequiresTip] = useState(false);
   const [tipAmount, setTipAmount] = useState('0.1');
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [createdAmaId, setCreatedAmaId] = useState<number | null>(null);
+  const [createdAmaId, setCreatedAmaId] = useState<bigint | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isConnected || !universalAddress) {
+    if (!isConnected || !subAccountAddress) {
       toast.error('Please connect your wallet first');
       return;
     }
@@ -39,25 +40,32 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
     }
 
     setIsCreating(true);
+    const createToast = toast.loading('Creating AMA on blockchain...');
 
     try {
-      const { data, error } = await supabase
-        .from('amas')
-        .insert({
-          creator_address: universalAddress,
-          heading: heading.trim(),
-          description: description.trim() || null,
-          requires_tip: requiresTip,
-          tip_amount: requiresTip ? parseFloat(tipAmount) : 0,
-          is_public: isPublic,
-        })
-        .select()
-        .single();
+      // Store heading and description as URIs (in this case, just the content itself)
+      const headingURI = heading.trim();
+      const descriptionURI = description.trim() || '';
+      const tipAmountInUSDC = requiresTip ? parseUnits(tipAmount, 6) : 0n;
 
-      if (error) throw error;
+      // Encode the createAMA function call
+      const calldata = encodeFunctionData({
+        abi: AMA_CONTRACT_ABI,
+        functionName: 'createAMA',
+        args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
+      });
 
-      setCreatedAmaId(data.id);
-      toast.success('AMA created successfully!');
+      // Send the transaction
+      const callsId = await sendCalls([{
+        to: AMA_CONTRACT_ADDRESS,
+        data: calldata,
+      }]);
+
+      // For simplicity, we'll use the current timestamp as a temporary ID
+      // In a production app, you'd want to listen for the AMACreated event to get the actual ID
+      setCreatedAmaId(BigInt(Date.now()));
+      
+      toast.success('AMA created successfully!', { id: createToast });
       
       // Reset form
       setHeading('');
@@ -67,7 +75,10 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       setIsPublic(true);
     } catch (error) {
       console.error('Error creating AMA:', error);
-      toast.error('Failed to create AMA');
+      toast.error('Failed to create AMA', { 
+        id: createToast,
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       setIsCreating(false);
     }

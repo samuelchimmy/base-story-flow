@@ -3,6 +3,9 @@ import { Heart, Send, Share2, Eye, Download } from 'lucide-react';
 import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
+import { useWallet } from './WalletProvider';
+import { encodeFunctionData } from 'viem';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 
 interface AMAMessage {
   id: number;
@@ -11,6 +14,8 @@ interface AMAMessage {
   love_count: number;
   tip_count: number;
   created_at: string;
+  blockchainId?: bigint;
+  amaId?: bigint;
 }
 
 interface AMAMessageCardProps {
@@ -18,7 +23,10 @@ interface AMAMessageCardProps {
 }
 
 export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
+  const { isConnected, sendCalls } = useWallet();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isLoved, setIsLoved] = useState(false);
+  const [localLoveCount, setLocalLoveCount] = useState(message.love_count);
   const maxPreviewLength = 280;
 
   const needsExpansion = message.content.length > maxPreviewLength;
@@ -37,6 +45,43 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
     if (hours > 0) return `${hours}h ago`;
     const minutes = Math.floor(diff / (1000 * 60));
     return `${minutes}m ago`;
+  };
+
+  const handleLove = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    if (!message.blockchainId || !message.amaId) {
+      toast.error('Blockchain data not available');
+      return;
+    }
+
+    if (isLoved) {
+      toast.info('You already loved this message');
+      return;
+    }
+
+    try {
+      const calldata = encodeFunctionData({
+        abi: AMA_CONTRACT_ABI,
+        functionName: 'loveAMAMessage',
+        args: [message.amaId, message.blockchainId],
+      });
+
+      await sendCalls([{
+        to: AMA_CONTRACT_ADDRESS,
+        data: calldata,
+      }]);
+
+      setIsLoved(true);
+      setLocalLoveCount(prev => prev + 1);
+      toast.success('Message loved!');
+    } catch (error) {
+      console.error('Error loving message:', error);
+      toast.error('Failed to love message');
+    }
   };
 
   const handleSaveAsImage = async () => {
@@ -152,11 +197,18 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
 
       <div className="flex items-center gap-3 sm:gap-4 text-muted-foreground flex-wrap">
         <button
-          className="flex items-center gap-1.5 sm:gap-2 transition-colors hover:text-primary group"
+          onClick={handleLove}
+          className={`flex items-center gap-1.5 sm:gap-2 transition-colors group ${
+            isLoved ? 'text-primary' : 'hover:text-primary'
+          }`}
           aria-label="Love message"
         >
-          <Heart className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-all" />
-          <span className="text-xs sm:text-sm">{message.love_count}</span>
+          <Heart 
+            className={`w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-all ${
+              isLoved ? 'fill-current' : ''
+            }`} 
+          />
+          <span className="text-xs sm:text-sm">{localLoveCount}</span>
         </button>
 
         <button
