@@ -89,13 +89,13 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   return (
     <div className="w-full">
       <div className="container mx-auto px-4 py-4 sm:py-6">
-        <div className="flex items-center justify-between mb-4 sm:mb-6 pb-3 border-b border-border">
-          <div className="flex items-center justify-center gap-1 sm:gap-2 flex-1">
+        <div className="flex items-center justify-center mb-4 sm:mb-6 pb-3 border-b border-border">
+          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
             <Button
               variant={sortBy === 'latest' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setSortBy('latest')}
-              className="text-xs sm:text-sm"
+              className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Latest
             </Button>
@@ -103,7 +103,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
               variant={sortBy === 'loved' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setSortBy('loved')}
-              className="text-xs sm:text-sm"
+              className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Most Loved
             </Button>
@@ -111,7 +111,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
               variant="ghost"
               size="sm"
               onClick={onPostClick}
-              className="text-xs sm:text-sm"
+              className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Post
             </Button>
@@ -119,7 +119,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
               variant="ghost"
               size="sm"
               onClick={onAMAClick}
-              className="text-xs sm:text-sm"
+              className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               AMA
             </Button>

@@ -64,7 +64,7 @@ export const SessionsDrawer = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs sm:text-sm"
+          className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
         >
           Sessions
         </Button>
