@@ -128,7 +128,9 @@ export const SessionsDrawer = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 flex-shrink-0"
+                            className="h-8 w-8 flex-shrink-0 text-foreground"
+                            aria-label="Copy AMA link"
+                            title="Copy AMA link"
                             onClick={(e) => {
                               e.stopPropagation();
                               copyAMALink(ama.id.toString());
