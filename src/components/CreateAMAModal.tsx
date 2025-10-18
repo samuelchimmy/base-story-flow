@@ -53,17 +53,23 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      const callsId = await sendCalls([
+      const callsResponse = await sendCalls([
         {
           to: AMA_CONTRACT_ADDRESS,
           data: calldata,
         },
       ]);
 
+      // Extract the ID string from the response
+      // The response might be either a string or an object with an 'id' property
+      const callsId = typeof callsResponse === 'string' ? callsResponse : callsResponse.id;
+      
       console.log('Transaction sent, calls ID:', callsId);
+      console.log('Full response:', callsResponse);
+      
       toast.loading('Waiting for confirmation...', { id: createToast });
 
-      // Poll for transaction confirmation with improved error handling
+      // Poll for transaction confirmation
       let receipt: any = null;
       let attempts = 0;
       const maxAttempts = 90; // 3 minutes (90 * 2 seconds)
@@ -98,20 +104,16 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
           }
           
         } catch (statusError) {
-          // Log the error but continue polling unless it's a critical error
           console.error(`Error checking status (attempt ${attempts}):`, statusError);
           
-          // If we're past halfway and still getting errors, something might be wrong
           if (attempts > maxAttempts / 2) {
             console.warn('⚠️ Still getting errors after many attempts, but continuing...');
           }
         }
         
-        // Wait before next poll
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
       }
 
-      // Check if we got a receipt
       if (!receipt) {
         console.error(`❌ Transaction confirmation timeout after ${maxAttempts * pollInterval / 1000} seconds`);
         throw new Error(
