@@ -2,22 +2,30 @@ import { useState, useEffect, useCallback } from 'react';
 import { StoryCard, type Story } from './StoryCard';
 import { Button } from './ui/button';
 import { publicClient } from '../viemClient';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '../config';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { SessionsDrawer } from './SessionsDrawer';
+import { CreatePost } from './CreatePost';
+import { CreateAMAModal } from './CreateAMAModal';
+import { useWallet } from './WalletProvider';
+import { getAllAMAs } from '@/lib/amaHelpers';
+import { useNavigate } from 'react-router-dom';
 
-type SortType = 'latest' | 'loved';
+type TabType = 'latest' | 'loved' | 'post' | 'ama' | 'sessions';
 
 interface StoryFeedProps {
-  onPostClick: () => void;
-  onAMAClick: () => void;
+  onPostClick?: () => void;
+  onAMAClick?: () => void;
 }
 
 export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<SortType>('latest');
+  const [activeTab, setActiveTab] = useState<TabType>('latest');
+  const [userStories, setUserStories] = useState<any[]>([]);
+  const [userAMAs, setUserAMAs] = useState<any[]>([]);
+  const { subAccountAddress } = useWallet();
+  const navigate = useNavigate();
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {
@@ -70,6 +78,34 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     }
   }, [stories.length]);
 
+  // Fetch user data for sessions tab
+  const fetchUserData = useCallback(async () => {
+    if (!subAccountAddress) return;
+
+    try {
+      const allStories = await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'getAllStories',
+      });
+
+      const myStories = allStories.filter(
+        (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
+      );
+
+      setUserStories(myStories);
+
+      const allAMAs = await getAllAMAs();
+      const myAMAs = allAMAs.filter(
+        (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
+      );
+
+      setUserAMAs(myAMAs);
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+    }
+  }, [subAccountAddress]);
+
   useEffect(() => {
     fetchStories();
     
@@ -78,13 +114,119 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     return () => clearInterval(interval);
   }, [fetchStories]);
 
+  useEffect(() => {
+    if (activeTab === 'sessions' && subAccountAddress) {
+      fetchUserData();
+    }
+  }, [activeTab, subAccountAddress, fetchUserData]);
+
   const sortedStories = [...stories].sort((a, b) => {
-    if (sortBy === 'latest') {
+    if (activeTab === 'latest') {
       return b.timestamp.getTime() - a.timestamp.getTime();
     } else {
       return b.loves - a.loves;
     }
   });
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'latest':
+      case 'loved':
+        return (
+          <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto animate-fade-in">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Loading stories from blockchain...</p>
+              </div>
+            ) : stories.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No stories found. Be the first to post!</p>
+              </div>
+            ) : (
+              sortedStories.map(story => (
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  refetchStories={fetchStories}
+                />
+              ))
+            )}
+          </div>
+        );
+      case 'post':
+        return (
+          <div className="max-w-2xl mx-auto animate-fade-in">
+            <CreatePost 
+              onClose={() => setActiveTab('latest')} 
+              refetchStories={fetchStories}
+            />
+          </div>
+        );
+      case 'ama':
+        return (
+          <div className="max-w-2xl mx-auto animate-fade-in">
+            <CreateAMAModal 
+              open={true}
+              onOpenChange={(open) => !open && setActiveTab('latest')}
+            />
+          </div>
+        );
+      case 'sessions':
+        return (
+          <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+            <div>
+              <h3 className="text-sm font-semibold mb-3">AMA sessions</h3>
+              {!subAccountAddress ? (
+                <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
+              ) : userAMAs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No AMAs created yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {userAMAs.map((ama) => (
+                    <button
+                      key={ama.id.toString()}
+                      onClick={() => navigate(`/ama/${ama.id.toString()}`)}
+                      className="w-full text-left p-3 rounded-lg border border-border hover:bg-accent transition-colors"
+                    >
+                      <p className="text-sm font-medium truncate">{ama.headingURI}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Number(ama.messageCount)} messages
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold mb-3">Story History</h3>
+              {!subAccountAddress ? (
+                <p className="text-xs text-muted-foreground">Connect wallet to view your stories</p>
+              ) : userStories.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No stories posted yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {userStories.map((story) => (
+                    <div
+                      key={story.id.toString()}
+                      className="p-3 rounded-lg border border-border"
+                    >
+                      <p className="text-sm line-clamp-2">{story.contentURI}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span>❤️ {Number(story.loveCount)}</span>
+                        <span>
+                          {new Date(Number(story.timestamp) * 1000).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="w-full">
@@ -92,60 +234,49 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
         <div className="flex items-center justify-center mb-4 sm:mb-6 pb-3 border-b border-border">
           <div className="flex items-center justify-center gap-0.5 sm:gap-1">
             <Button
-              variant={sortBy === 'latest' ? 'default' : 'ghost'}
+              variant={activeTab === 'latest' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setSortBy('latest')}
+              onClick={() => setActiveTab('latest')}
               className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Latest
             </Button>
             <Button
-              variant={sortBy === 'loved' ? 'default' : 'ghost'}
+              variant={activeTab === 'loved' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setSortBy('loved')}
+              onClick={() => setActiveTab('loved')}
               className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Most Loved
             </Button>
             <Button
-              variant="ghost"
+              variant={activeTab === 'post' ? 'default' : 'ghost'}
               size="sm"
-              onClick={onPostClick}
+              onClick={() => setActiveTab('post')}
               className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               Post
             </Button>
             <Button
-              variant="ghost"
+              variant={activeTab === 'ama' ? 'default' : 'ghost'}
               size="sm"
-              onClick={onAMAClick}
+              onClick={() => setActiveTab('ama')}
               className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
             >
               AMA
             </Button>
-            <SessionsDrawer />
+            <Button
+              variant={activeTab === 'sessions' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('sessions')}
+              className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
+            >
+              Sessions
+            </Button>
           </div>
         </div>
 
-        <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto">
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Loading stories from blockchain...</p>
-            </div>
-          ) : stories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No stories found. Be the first to post!</p>
-            </div>
-          ) : (
-            sortedStories.map(story => (
-              <StoryCard
-                key={story.id}
-                story={story}
-                refetchStories={fetchStories}
-              />
-            ))
-          )}
-        </div>
+        {renderContent()}
       </div>
     </div>
   );
