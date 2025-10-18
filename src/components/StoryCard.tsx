@@ -218,7 +218,9 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-2 text-primary hover:text-primary/80 p-0 h-auto text-xs sm:text-sm"
+            className={`mt-2 p-0 h-auto text-xs sm:text-sm ${
+              isExpanded ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'
+            }`}
           >
             {isExpanded ? 'Show Less' : 'View More'}
           </Button>
