@@ -10,14 +10,14 @@ import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
-import { publicClient } from '@/viemClient';
+// import removed: publicClient not needed; using provider.getCallsStatus via WalletProvider
 interface CreateAMAModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
-  const { subAccountAddress, isConnected, sendCalls } = useWallet();
+  const { subAccountAddress, isConnected, sendCalls, getCallsStatus } = useWallet();
   const [heading, setHeading] = useState('');
   const [description, setDescription] = useState('');
   const [requiresTip, setRequiresTip] = useState(false);
@@ -72,7 +72,7 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       
       while (attempts < maxAttempts) {
         try {
-          const calls = await publicClient.getCallsStatus({ id: callsId });
+          const calls = await getCallsStatus(callsId);
           console.log(`Attempt ${attempts + 1}/${maxAttempts}, status:`, calls.status);
           
           if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {

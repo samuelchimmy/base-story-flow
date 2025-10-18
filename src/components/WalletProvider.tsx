@@ -22,6 +22,7 @@ interface WalletContextType {
   connect: () => Promise<void>;
   disconnect: () => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
+  getCallsStatus: (id: string) => Promise<any>;
   fetchBalance: () => Promise<void>;
 }
 
@@ -300,6 +301,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [provider, subAccountAddress]);
 
+  // Get calls status via provider (EIP-5792)
+  const getCallsStatus = useCallback(async (id: string) => {
+    if (!provider) throw new Error('Wallet provider not ready');
+    return await provider.request({
+      method: 'wallet_getCallsStatus',
+      params: [{ id }],
+    });
+  }, [provider]);
+
   // Auto-connect on mount if previously connected
   useEffect(() => {
     const wasConnected = localStorage.getItem('walletConnected');
@@ -346,6 +356,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         connect,
         disconnect,
         sendCalls,
+        getCallsStatus,
         fetchBalance,
       }}
     >

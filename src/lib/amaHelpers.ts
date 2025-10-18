@@ -31,9 +31,22 @@ export async function getAllAMAs(): Promise<AMA[]> {
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAllAMAs',
-    }) as AMA[];
+    }) as any[];
 
-    return data;
+    // Augment each AMA with messageCount fetched from contract
+    const withCounts = await Promise.all(
+      data.map(async (ama) => {
+        const count = await publicClient.readContract({
+          address: AMA_CONTRACT_ADDRESS,
+          abi: AMA_CONTRACT_ABI,
+          functionName: 'getAMAMessageCount',
+          args: [ama.id],
+        }) as bigint;
+        return { ...ama, messageCount: count } as AMA;
+      })
+    );
+
+    return withCounts;
   } catch (error) {
     console.error('Error fetching AMAs:', error);
     return [];
@@ -50,9 +63,16 @@ export async function getAMA(amaId: bigint): Promise<AMA | null> {
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMA',
       args: [amaId],
-    }) as AMA;
+    }) as any;
 
-    return data;
+    const count = await publicClient.readContract({
+      address: AMA_CONTRACT_ADDRESS,
+      abi: AMA_CONTRACT_ABI,
+      functionName: 'getAMAMessageCount',
+      args: [amaId],
+    }) as bigint;
+
+    return { ...data, messageCount: count } as AMA;
   } catch (error) {
     console.error('Error fetching AMA:', error);
     return null;
