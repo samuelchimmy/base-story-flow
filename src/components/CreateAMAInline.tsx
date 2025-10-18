@@ -70,27 +70,17 @@ export const CreateAMAInline = () => {
         attempts++;
         
         try {
-          const calls = await getCallsStatus(callsId);
-          console.log(`[Attempt ${attempts}/${maxAttempts}] Full response:`, calls);
-          console.log(`[Attempt ${attempts}/${maxAttempts}] Status: ${calls.status}`);
+          const response = await getCallsStatus(callsId);
+          console.log(`[Attempt ${attempts}/${maxAttempts}] Response:`, response);
           
-          if (calls.status === 'CONFIRMED') {
-            if (calls.receipts && calls.receipts.length > 0 && calls.receipts[0]) {
-              receipt = calls.receipts[0];
-              console.log('✅ Transaction confirmed! Receipt:', receipt);
-              break;
-            } else {
-              console.warn('Status is CONFIRMED but no receipt found, continuing to poll...');
-            }
+          // Base Account SDK returns: { status: 200, receipts: [...], ... }
+          if (response.receipts && response.receipts.length > 0 && response.receipts[0]) {
+            receipt = response.receipts[0];
+            console.log('✅ Transaction confirmed! Receipt:', receipt);
+            break;
           }
           
-          if (calls.status === 'REVERTED') {
-            throw new Error('Transaction reverted on-chain');
-          }
-          
-          if (calls.status === 'PENDING') {
-            console.log('⏳ Transaction pending...');
-          }
+          console.log('⏳ Transaction pending, no receipts yet...');
           
         } catch (statusError) {
           console.error(`Error checking status (attempt ${attempts}):`, statusError);
