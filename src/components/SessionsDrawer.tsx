@@ -65,7 +65,6 @@ export const SessionsDrawer = () => {
           variant="ghost"
           size="sm"
           className="text-xs sm:text-sm font-[Bangers] tracking-wide"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
         >
           Sessions
         </Button>
