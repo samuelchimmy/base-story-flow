@@ -30,7 +30,7 @@ export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
       const calldata = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'postStory',
-        args: [content],
+        args: [content], // contentURI parameter
       });
 
       // This call will now automatically include the correct chainId
