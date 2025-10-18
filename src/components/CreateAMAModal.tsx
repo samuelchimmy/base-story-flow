@@ -80,6 +80,7 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         
         try {
           const calls = await getCallsStatus(callsId);
+          console.log(`[Attempt ${attempts}/${maxAttempts}] Full response:`, calls);
           console.log(`[Attempt ${attempts}/${maxAttempts}] Status: ${calls.status}`);
           
           // Check for successful confirmation
