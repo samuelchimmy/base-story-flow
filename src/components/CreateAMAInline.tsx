@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
-// import removed: publicClient not needed; using provider.getCallsStatus via WalletProvider
 
 export const CreateAMAInline = () => {
   const { subAccountAddress, isConnected, sendCalls, getCallsStatus } = useWallet();
@@ -53,31 +52,67 @@ export const CreateAMAInline = () => {
         data: calldata,
       }]);
 
-      // Wait for transaction and get AMA ID from event
+      console.log('Transaction sent, calls ID:', callsId);
       toast.loading('Waiting for confirmation...', { id: createToast });
       
-      // Poll for transaction receipt
-      let receipt;
+      // Poll for transaction confirmation with improved error handling
+      let receipt: any = null;
       let attempts = 0;
-      while (attempts < 30) {
+      const maxAttempts = 90; // 3 minutes (90 * 2 seconds)
+      const pollInterval = 2000; // 2 seconds
+      
+      while (attempts < maxAttempts) {
+        attempts++;
+        
         try {
           const calls = await getCallsStatus(callsId);
-          if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {
-            receipt = calls.receipts[0];
-            break;
+          console.log(`[Attempt ${attempts}/${maxAttempts}] Status: ${calls.status}`);
+          
+          // Check for successful confirmation
+          if (calls.status === 'CONFIRMED') {
+            if (calls.receipts && calls.receipts.length > 0 && calls.receipts[0]) {
+              receipt = calls.receipts[0];
+              console.log('✅ Transaction confirmed! Receipt:', receipt);
+              break;
+            } else {
+              console.warn('Status is CONFIRMED but no receipt found, continuing to poll...');
+            }
           }
-        } catch (e) {
-          // Continue polling
+          
+          // Check for failure states
+          if (calls.status === 'REVERTED') {
+            throw new Error('Transaction reverted on-chain');
+          }
+          
+          // Log pending state
+          if (calls.status === 'PENDING') {
+            console.log('⏳ Transaction pending...');
+          }
+          
+        } catch (statusError) {
+          // Log the error but continue polling unless it's a critical error
+          console.error(`Error checking status (attempt ${attempts}):`, statusError);
+          
+          // If we're past halfway and still getting errors, something might be wrong
+          if (attempts > maxAttempts / 2) {
+            console.warn('⚠️ Still getting errors after many attempts, but continuing...');
+          }
         }
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        attempts++;
+        
+        // Wait before next poll
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
       }
 
+      // Check if we got a receipt
       if (!receipt) {
-        throw new Error('Transaction confirmation timeout');
+        console.error(`❌ Transaction confirmation timeout after ${maxAttempts * pollInterval / 1000} seconds`);
+        throw new Error(
+          'Transaction is taking longer than expected. It may still succeed - please check your AMA sessions in a moment.'
+        );
       }
 
-      // Parse AMACreated event to get the AMA ID
+      // Parse the AMACreated event from the receipt
+      console.log('🔍 Searching for AMACreated event in logs...');
       const amaCreatedEvent = receipt.logs.find((log: any) => {
         try {
           const decoded = decodeEventLog({
@@ -92,7 +127,8 @@ export const CreateAMAInline = () => {
       });
 
       if (!amaCreatedEvent) {
-        throw new Error('AMA creation event not found');
+        console.error('❌ AMACreated event not found in receipt logs');
+        throw new Error('AMA creation event not found in transaction receipt');
       }
 
       const decoded = decodeEventLog({
@@ -102,8 +138,9 @@ export const CreateAMAInline = () => {
       }) as { args: { amaId: bigint } };
 
       const amaId = decoded.args.amaId;
-      setCreatedAmaId(amaId);
+      console.log('✅ AMA created with ID:', amaId.toString());
       
+      setCreatedAmaId(amaId);
       toast.success('AMA created successfully!', { id: createToast });
       
       // Reset form
@@ -112,8 +149,9 @@ export const CreateAMAInline = () => {
       setRequiresTip(false);
       setTipAmount('0.1');
       setIsPublic(true);
+      
     } catch (error) {
-      console.error('Error creating AMA:', error);
+      console.error('❌ Error creating AMA:', error);
       toast.error('Failed to create AMA', { 
         id: createToast,
         description: error instanceof Error ? error.message : 'Unknown error',
