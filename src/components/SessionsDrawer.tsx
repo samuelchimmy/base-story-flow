@@ -94,7 +94,7 @@ export const SessionsDrawer = () => {
         </DrawerHeader>
 
         <div className="overflow-y-auto px-4 pb-4">
-          <Accordion type="multiple" className="w-full">
+          <Accordion type="single" collapsible className="w-full">
             {/* AMA Sessions */}
             <AccordionItem value="ama-sessions">
               <AccordionTrigger className="text-sm font-semibold">
