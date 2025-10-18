@@ -20,7 +20,11 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {
-    setIsLoading(true);
+    // Only set the main loading state to true if there are no stories on screen yet.
+    // This prevents the flicker on subsequent background refreshes.
+    if (stories.length === 0) {
+      setIsLoading(true);
+    }
     
     try {
       const data = await publicClient.readContract({
@@ -63,7 +67,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
       // Always set loading to false after a fetch, to remove the initial spinner
       setIsLoading(false);
     }
-  }, []);
+  }, [stories.length]);
 
   useEffect(() => {
     fetchStories();
