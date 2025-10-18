@@ -7,8 +7,9 @@ import { Switch } from './ui/switch';
 import { useWallet } from './WalletProvider';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
-import { parseUnits, encodeFunctionData } from 'viem';
+import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
+import { publicClient } from '@/viemClient';
 
 export const CreateAMAInline = () => {
   const { subAccountAddress, isConnected, sendCalls } = useWallet();
@@ -47,12 +48,61 @@ export const CreateAMAInline = () => {
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      await sendCalls([{
+      const callsId = await sendCalls([{
         to: AMA_CONTRACT_ADDRESS,
         data: calldata,
       }]);
 
-      setCreatedAmaId(BigInt(Date.now()));
+      // Wait for transaction and get AMA ID from event
+      toast.loading('Waiting for confirmation...', { id: createToast });
+      
+      // Poll for transaction receipt
+      let receipt;
+      let attempts = 0;
+      while (attempts < 30) {
+        try {
+          const calls = await publicClient.getCallsStatus({ id: callsId });
+          if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {
+            receipt = calls.receipts[0];
+            break;
+          }
+        } catch (e) {
+          // Continue polling
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+      }
+
+      if (!receipt) {
+        throw new Error('Transaction confirmation timeout');
+      }
+
+      // Parse AMACreated event to get the AMA ID
+      const amaCreatedEvent = receipt.logs.find((log: any) => {
+        try {
+          const decoded = decodeEventLog({
+            abi: AMA_CONTRACT_ABI,
+            data: log.data,
+            topics: log.topics,
+          }) as { eventName: string };
+          return decoded.eventName === 'AMACreated';
+        } catch {
+          return false;
+        }
+      });
+
+      if (!amaCreatedEvent) {
+        throw new Error('AMA creation event not found');
+      }
+
+      const decoded = decodeEventLog({
+        abi: AMA_CONTRACT_ABI,
+        data: amaCreatedEvent.data,
+        topics: amaCreatedEvent.topics,
+      }) as { args: { amaId: bigint } };
+
+      const amaId = decoded.args.amaId;
+      setCreatedAmaId(amaId);
       
       toast.success('AMA created successfully!', { id: createToast });
       
