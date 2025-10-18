@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
-// import removed: publicClient not needed; using provider.getCallsStatus via WalletProvider
+
 interface CreateAMAModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,19 +43,16 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
     const createToast = toast.loading('Creating AMA on blockchain...');
 
     try {
-      // Store heading and description as URIs (in this case, just the content itself)
       const headingURI = heading.trim();
       const descriptionURI = description.trim() || '';
       const tipAmountInUSDC = requiresTip ? parseUnits(tipAmount, 6) : 0n;
 
-      // Encode the createAMA function call
       const calldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
         functionName: 'createAMA',
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      // Send the transaction
       const callsId = await sendCalls([
         {
           to: AMA_CONTRACT_ADDRESS,
@@ -66,37 +63,64 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       console.log('Transaction sent, calls ID:', callsId);
       toast.loading('Waiting for confirmation...', { id: createToast });
 
-      let receipt: any;
+      // Poll for transaction confirmation with improved error handling
+      let receipt: any = null;
       let attempts = 0;
-      const maxAttempts = 60; // 2 minutes total (60 * 2 seconds)
+      const maxAttempts = 90; // 3 minutes (90 * 2 seconds)
+      const pollInterval = 2000; // 2 seconds
       
       while (attempts < maxAttempts) {
+        attempts++;
+        
         try {
           const calls = await getCallsStatus(callsId);
-          console.log(`Attempt ${attempts + 1}/${maxAttempts}, status:`, calls.status);
+          console.log(`[Attempt ${attempts}/${maxAttempts}] Status: ${calls.status}`);
           
-          if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {
-            receipt = calls.receipts[0];
-            console.log('Transaction confirmed! Receipt:', receipt);
-            break;
+          // Check for successful confirmation
+          if (calls.status === 'CONFIRMED') {
+            if (calls.receipts && calls.receipts.length > 0 && calls.receipts[0]) {
+              receipt = calls.receipts[0];
+              console.log('✅ Transaction confirmed! Receipt:', receipt);
+              break;
+            } else {
+              console.warn('Status is CONFIRMED but no receipt found, continuing to poll...');
+            }
           }
           
+          // Check for failure states
           if (calls.status === 'REVERTED') {
             throw new Error('Transaction reverted on-chain');
           }
-        } catch (error) {
-          console.error('Error checking transaction status:', error);
+          
+          // Log pending state
+          if (calls.status === 'PENDING') {
+            console.log('⏳ Transaction pending...');
+          }
+          
+        } catch (statusError) {
+          // Log the error but continue polling unless it's a critical error
+          console.error(`Error checking status (attempt ${attempts}):`, statusError);
+          
+          // If we're past halfway and still getting errors, something might be wrong
+          if (attempts > maxAttempts / 2) {
+            console.warn('⚠️ Still getting errors after many attempts, but continuing...');
+          }
         }
         
-        await new Promise((r) => setTimeout(r, 2000));
-        attempts++;
+        // Wait before next poll
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
       }
 
+      // Check if we got a receipt
       if (!receipt) {
-        console.error('Transaction confirmation timeout after', maxAttempts * 2, 'seconds');
-        throw new Error('Transaction confirmation timeout. Please check your wallet or try again.');
+        console.error(`❌ Transaction confirmation timeout after ${maxAttempts * pollInterval / 1000} seconds`);
+        throw new Error(
+          'Transaction is taking longer than expected. It may still succeed - please check your AMA sessions in a moment.'
+        );
       }
 
+      // Parse the AMACreated event from the receipt
+      console.log('🔍 Searching for AMACreated event in logs...');
       const amaCreatedLog = receipt.logs.find((log: any) => {
         try {
           const decoded = decodeEventLog({
@@ -110,7 +134,10 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         }
       });
 
-      if (!amaCreatedLog) throw new Error('AMA creation event not found');
+      if (!amaCreatedLog) {
+        console.error('❌ AMACreated event not found in receipt logs');
+        throw new Error('AMA creation event not found in transaction receipt');
+      }
 
       const decoded = decodeEventLog({
         abi: AMA_CONTRACT_ABI,
@@ -118,10 +145,14 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         topics: amaCreatedLog.topics,
       }) as { args: { amaId: bigint } };
 
-      setCreatedAmaId(decoded.args.amaId);
+      const amaId = decoded.args.amaId;
+      console.log('✅ AMA created with ID:', amaId.toString());
+      
+      setCreatedAmaId(amaId);
       toast.success('AMA created successfully!', { id: createToast });
+      
     } catch (error) {
-      console.error('Error creating AMA:', error);
+      console.error('❌ Error creating AMA:', error);
       toast.error('Failed to create AMA', { 
         id: createToast,
         description: error instanceof Error ? error.message : 'Unknown error',
@@ -141,6 +172,11 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
 
   const handleClose = () => {
     setCreatedAmaId(null);
+    setHeading('');
+    setDescription('');
+    setRequiresTip(false);
+    setTipAmount('0.1');
+    setIsPublic(true);
     onOpenChange(false);
   };
 
