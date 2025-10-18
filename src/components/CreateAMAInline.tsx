@@ -47,15 +47,20 @@ export const CreateAMAInline = () => {
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      const callsId = await sendCalls([{
+      const callsResponse = await sendCalls([{
         to: AMA_CONTRACT_ADDRESS,
         data: calldata,
       }]);
 
+      // Extract the ID string from the response
+      const callsId = typeof callsResponse === 'string' ? callsResponse : callsResponse.id;
+      
       console.log('Transaction sent, calls ID:', callsId);
+      console.log('Full response:', callsResponse);
+      
       toast.loading('Waiting for confirmation...', { id: createToast });
       
-      // Poll for transaction confirmation with improved error handling
+      // Poll for transaction confirmation
       let receipt: any = null;
       let attempts = 0;
       const maxAttempts = 90; // 3 minutes (90 * 2 seconds)
@@ -68,7 +73,6 @@ export const CreateAMAInline = () => {
           const calls = await getCallsStatus(callsId);
           console.log(`[Attempt ${attempts}/${maxAttempts}] Status: ${calls.status}`);
           
-          // Check for successful confirmation
           if (calls.status === 'CONFIRMED') {
             if (calls.receipts && calls.receipts.length > 0 && calls.receipts[0]) {
               receipt = calls.receipts[0];
@@ -79,31 +83,25 @@ export const CreateAMAInline = () => {
             }
           }
           
-          // Check for failure states
           if (calls.status === 'REVERTED') {
             throw new Error('Transaction reverted on-chain');
           }
           
-          // Log pending state
           if (calls.status === 'PENDING') {
             console.log('⏳ Transaction pending...');
           }
           
         } catch (statusError) {
-          // Log the error but continue polling unless it's a critical error
           console.error(`Error checking status (attempt ${attempts}):`, statusError);
           
-          // If we're past halfway and still getting errors, something might be wrong
           if (attempts > maxAttempts / 2) {
             console.warn('⚠️ Still getting errors after many attempts, but continuing...');
           }
         }
         
-        // Wait before next poll
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
       }
 
-      // Check if we got a receipt
       if (!receipt) {
         console.error(`❌ Transaction confirmation timeout after ${maxAttempts * pollInterval / 1000} seconds`);
         throw new Error(
@@ -111,7 +109,6 @@ export const CreateAMAInline = () => {
         );
       }
 
-      // Parse the AMACreated event from the receipt
       console.log('🔍 Searching for AMACreated event in logs...');
       const amaCreatedEvent = receipt.logs.find((log: any) => {
         try {
