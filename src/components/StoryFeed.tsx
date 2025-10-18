@@ -5,6 +5,7 @@ import { publicClient } from '../viemClient';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { SessionsDrawer } from './SessionsDrawer';
 
 type SortType = 'latest' | 'loved';
 
@@ -88,39 +89,42 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   return (
     <div className="w-full">
       <div className="container mx-auto px-4 py-4 sm:py-6">
-        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-3 border-b border-border">
-          <Button
-            variant={sortBy === 'latest' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setSortBy('latest')}
-            className="text-xs sm:text-sm"
-          >
-            Latest
-          </Button>
-          <Button
-            variant={sortBy === 'loved' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setSortBy('loved')}
-            className="text-xs sm:text-sm"
-          >
-            Most Loved
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onPostClick}
-            className="text-xs sm:text-sm"
-          >
-            Post
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onAMAClick}
-            className="text-xs sm:text-sm"
-          >
-            AMA
-          </Button>
+        <div className="flex items-center justify-between mb-4 sm:mb-6 pb-3 border-b border-border">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-1">
+            <Button
+              variant={sortBy === 'latest' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSortBy('latest')}
+              className="text-xs sm:text-sm"
+            >
+              Latest
+            </Button>
+            <Button
+              variant={sortBy === 'loved' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSortBy('loved')}
+              className="text-xs sm:text-sm"
+            >
+              Most Loved
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onPostClick}
+              className="text-xs sm:text-sm"
+            >
+              Post
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAMAClick}
+              className="text-xs sm:text-sm"
+            >
+              AMA
+            </Button>
+          </div>
+          <SessionsDrawer />
         </div>
 
         <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto">
