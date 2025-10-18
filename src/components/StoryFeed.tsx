@@ -90,7 +90,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     <div className="w-full">
       <div className="container mx-auto px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 pb-3 border-b border-border">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-1">
+          <div className="flex items-center justify-center gap-1 sm:gap-2 flex-1">
             <Button
               variant={sortBy === 'latest' ? 'default' : 'ghost'}
               size="sm"
@@ -123,8 +123,8 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
             >
               AMA
             </Button>
+            <SessionsDrawer />
           </div>
-          <SessionsDrawer />
         </div>
 
         <div className="space-y-3 sm:space-y-4 max-w-2xl mx-auto">

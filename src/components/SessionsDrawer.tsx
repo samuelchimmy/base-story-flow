@@ -64,7 +64,7 @@ export const SessionsDrawer = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs sm:text-sm font-[Bangers] tracking-wide"
+          className="text-xs sm:text-sm"
         >
           Sessions
         </Button>
