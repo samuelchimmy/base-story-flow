@@ -193,7 +193,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // THIS IS THE NEW, CORRECTED REPLACEMENT CODE
       if (accounts.length > 1) {
         // With `defaultAccount: 'sub'`, the order is [Sub Account, Universal Account].
         const subAcc = accounts[0];
@@ -301,12 +300,16 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [provider, subAccountAddress]);
 
-  // Get calls status via provider (EIP-5792)
+  // FIXED: Get calls status via provider (EIP-5792)
+  // Pass the id string directly, not wrapped in an object
   const getCallsStatus = useCallback(async (id: string) => {
     if (!provider) throw new Error('Wallet provider not ready');
+    
+    console.log('[DEBUG] 📞 Calling wallet_getCallsStatus with ID:', id);
+    
     return await provider.request({
       method: 'wallet_getCallsStatus',
-      params: [{ id }],
+      params: [id], // ✅ FIXED: Pass string directly, not { id }
     });
   }, [provider]);
 
