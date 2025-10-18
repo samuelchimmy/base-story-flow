@@ -119,6 +119,7 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       }) as { args: { amaId: bigint } };
 
       setCreatedAmaId(decoded.args.amaId);
+      toast.success('AMA created successfully!', { id: createToast });
     } catch (error) {
       console.error('Error creating AMA:', error);
       toast.error('Failed to create AMA', { 
