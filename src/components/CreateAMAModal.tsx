@@ -8,9 +8,9 @@ import { Switch } from './ui/switch';
 import { useWallet } from './WalletProvider';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
-import { parseUnits, encodeFunctionData } from 'viem';
+import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
-
+import { publicClient } from '@/viemClient';
 interface CreateAMAModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,23 +56,54 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       });
 
       // Send the transaction
-      const callsId = await sendCalls([{
-        to: AMA_CONTRACT_ADDRESS,
-        data: calldata,
-      }]);
+      const callsId = await sendCalls([
+        {
+          to: AMA_CONTRACT_ADDRESS,
+          data: calldata,
+        },
+      ]);
 
-      // For simplicity, we'll use the current timestamp as a temporary ID
-      // In a production app, you'd want to listen for the AMACreated event to get the actual ID
-      setCreatedAmaId(BigInt(Date.now()));
-      
-      toast.success('AMA created successfully!', { id: createToast });
-      
-      // Reset form
-      setHeading('');
-      setDescription('');
-      setRequiresTip(false);
-      setTipAmount('0.1');
-      setIsPublic(true);
+      // Wait for confirmation and decode AMACreated event to get real AMA ID
+      toast.loading('Waiting for confirmation...', { id: createToast });
+
+      let receipt: any;
+      let attempts = 0;
+      while (attempts < 30) {
+        try {
+          const calls = await publicClient.getCallsStatus({ id: callsId });
+          if (calls.status === 'CONFIRMED' && calls.receipts?.[0]) {
+            receipt = calls.receipts[0];
+            break;
+          }
+        } catch {}
+        await new Promise((r) => setTimeout(r, 2000));
+        attempts++;
+      }
+
+      if (!receipt) throw new Error('Transaction confirmation timeout');
+
+      const amaCreatedLog = receipt.logs.find((log: any) => {
+        try {
+          const decoded = decodeEventLog({
+            abi: AMA_CONTRACT_ABI,
+            data: log.data,
+            topics: log.topics,
+          }) as { eventName: string };
+          return decoded.eventName === 'AMACreated';
+        } catch {
+          return false;
+        }
+      });
+
+      if (!amaCreatedLog) throw new Error('AMA creation event not found');
+
+      const decoded = decodeEventLog({
+        abi: AMA_CONTRACT_ABI,
+        data: amaCreatedLog.data,
+        topics: amaCreatedLog.topics,
+      }) as { args: { amaId: bigint } };
+
+      setCreatedAmaId(decoded.args.amaId);
     } catch (error) {
       console.error('Error creating AMA:', error);
       toast.error('Failed to create AMA', { 

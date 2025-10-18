@@ -80,7 +80,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
 
   // Fetch user data for sessions tab
   const fetchUserData = useCallback(async () => {
-    if (!universalAddress) return;
+    if (!subAccountAddress) return;
 
     try {
       const allStories = await publicClient.readContract({
@@ -90,21 +90,21 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
       });
 
       const myStories = allStories.filter(
-        (story: any) => story.author.toLowerCase() === universalAddress.toLowerCase() && !story.deleted
+        (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );
 
       setUserStories(myStories);
 
       const allAMAs = await getAllAMAs();
       const myAMAs = allAMAs.filter(
-        (ama) => ama.creator.toLowerCase() === universalAddress.toLowerCase()
+        (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
       );
 
       setUserAMAs(myAMAs);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
     }
-  }, [universalAddress]);
+  }, [subAccountAddress]);
 
   useEffect(() => {
     fetchStories();
@@ -115,10 +115,10 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   }, [fetchStories]);
 
   useEffect(() => {
-    if (activeTab === 'sessions' && universalAddress) {
+    if (activeTab === 'sessions' && subAccountAddress) {
       fetchUserData();
     }
-  }, [activeTab, universalAddress, fetchUserData]);
+  }, [activeTab, subAccountAddress, fetchUserData]);
 
   const sortedStories = [...stories].sort((a, b) => {
     if (activeTab === 'latest') {
@@ -169,7 +169,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
           <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
             <div>
               <h3 className="text-sm font-semibold mb-3">AMA sessions</h3>
-              {!universalAddress ? (
+              {!subAccountAddress ? (
                 <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
               ) : userAMAs.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No AMAs created yet</p>
@@ -181,7 +181,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
                       onClick={() => navigate(`/ama/${ama.id.toString()}`)}
                       className="w-full text-left p-3 rounded-lg border border-border hover:bg-accent transition-colors"
                     >
-                      <p className="text-sm font-medium truncate">{ama.heading}</p>
+                      <p className="text-sm font-medium truncate">{ama.headingURI}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {Number(ama.messageCount)} messages
                       </p>
@@ -193,7 +193,7 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
 
             <div>
               <h3 className="text-sm font-semibold mb-3">Story History</h3>
-              {!universalAddress ? (
+              {!subAccountAddress ? (
                 <p className="text-xs text-muted-foreground">Connect wallet to view your stories</p>
               ) : userStories.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No stories posted yet</p>

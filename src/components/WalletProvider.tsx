@@ -148,9 +148,24 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     console.log('[DEBUG] 🔌 connect() called');
     
     if (!provider) {
-      console.error('[DEBUG] ❌ Provider not initialized');
-      setError('Wallet provider not ready');
-      return;
+      console.warn('[DEBUG] ⚠️ Provider not initialized, attempting lazy init...');
+      try {
+        const sdkInstance = createBaseAccountSDK({
+          appName: 'BaseStory',
+          appLogoUrl: window.location.origin + '/favicon.ico',
+          appChainIds: [baseSepolia.id],
+          subAccounts: {
+            creation: 'on-connect',
+            defaultAccount: 'sub',
+          },
+        });
+        const providerInstance = sdkInstance.getProvider();
+        setProvider(providerInstance);
+      } catch (e) {
+        console.error('[DEBUG] ❌ Lazy init failed:', e);
+        setError('Wallet provider not ready');
+        return;
+      }
     }
 
     if (isConnecting.current) {
