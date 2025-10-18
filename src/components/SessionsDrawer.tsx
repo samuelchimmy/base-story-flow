@@ -72,7 +72,7 @@ export const SessionsDrawer = () => {
       <DrawerContent className="h-[85vh]">
         <DrawerHeader className="relative">
           <DrawerTitle className="font-[Bangers] text-2xl">Sessions</DrawerTitle>
-          <DrawerDescription>Your AMA sections and story history</DrawerDescription>
+          <DrawerDescription>Your AMA sessions and story history</DrawerDescription>
           <DrawerClose asChild>
             <Button variant="ghost" size="icon" className="absolute right-4 top-4">
               <X className="h-4 w-4" />
@@ -83,7 +83,7 @@ export const SessionsDrawer = () => {
         <div className="overflow-y-auto px-4 pb-4 space-y-6">
           {/* AMA Sections */}
           <div>
-            <h3 className="text-sm font-semibold mb-3">AMA sections</h3>
+            <h3 className="text-sm font-semibold mb-3">AMA sessions</h3>
             {!subAccountAddress ? (
               <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
             ) : userAMAs.length === 0 ? (
