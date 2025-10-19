@@ -47,16 +47,12 @@ export const CreateAMAInline = () => {
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      const callsResponse = await sendCalls([{
+      const callsId = await sendCalls([{
         to: AMA_CONTRACT_ADDRESS,
         data: calldata,
       }]);
-
-      // Extract the ID string from the response
-      const callsId = typeof callsResponse === 'string' ? callsResponse : callsResponse.id;
       
       console.log('Transaction sent, calls ID:', callsId);
-      console.log('Full response:', callsResponse);
       
       toast.loading('Waiting for confirmation...', { id: createToast });
       

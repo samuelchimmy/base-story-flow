@@ -53,19 +53,14 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
         args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
       });
 
-      const callsResponse = await sendCalls([
+      const callsId = await sendCalls([
         {
           to: AMA_CONTRACT_ADDRESS,
           data: calldata,
         },
       ]);
-
-      // Extract the ID string from the response
-      // The response might be either a string or an object with an 'id' property
-      const callsId = typeof callsResponse === 'string' ? callsResponse : callsResponse.id;
       
       console.log('Transaction sent, calls ID:', callsId);
-      console.log('Full response:', callsResponse);
       
       toast.loading('Waiting for confirmation...', { id: createToast });
 

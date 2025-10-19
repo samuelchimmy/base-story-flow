@@ -109,46 +109,50 @@ export default function AMA() {
         args: [amaId, messageContent],
       });
 
-      // If tip is required, we need to approve and send the tip first
+      // Build all calls in one atomic batch
+      const calls = [];
+
+      // If tip is required, approve and transfer USDC to the AMA contract
       if (ama.requiresTip) {
         const tipAmountInUSDC = ama.tipAmount;
 
-        toast.loading('Approving USDC spending...', { id: sendToast });
+        toast.loading('Preparing tip and message...', { id: sendToast });
 
-        // Step 1: Approve USDC transfer
+        // Step 1: Approve USDC transfer to AMA contract (not creator)
         const approveCalldata = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'approve',
-          args: [ama.creator as `0x${string}`, tipAmountInUSDC],
+          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
         });
 
-        await sendCalls([{
+        calls.push({
           to: USDC_CONTRACT_ADDRESS,
           data: approveCalldata,
-        }]);
+        });
 
-        toast.loading('Sending tip...', { id: sendToast });
-
-        // Step 2: Transfer USDC to creator
+        // Step 2: Transfer USDC to AMA contract
         const transferCalldata = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'transfer',
-          args: [ama.creator as `0x${string}`, tipAmountInUSDC],
+          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
         });
 
-        await sendCalls([{
+        calls.push({
           to: USDC_CONTRACT_ADDRESS,
           data: transferCalldata,
-        }]);
+        });
       }
 
       toast.loading('Posting message to blockchain...', { id: sendToast });
 
-      // Post the message to the blockchain
-      await sendCalls([{
+      // Add the message posting call
+      calls.push({
         to: AMA_CONTRACT_ADDRESS,
         data: postMessageCalldata,
-      }]);
+      });
+
+      // Send all calls atomically
+      await sendCalls(calls);
 
       toast.success('Message sent successfully!', { id: sendToast });
       setNewMessage('');
