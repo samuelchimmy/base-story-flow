@@ -248,7 +248,7 @@ export default function AMA() {
             </div>
           ) : (
             messages.map((message) => (
-              <AMAMessageCard key={message.id} message={message} />
+              <AMAMessageCard key={message.id} message={message} tipAmount={ama?.tipAmount} />
             ))
           )}
         </div>

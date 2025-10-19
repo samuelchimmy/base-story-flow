@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useWallet } from './WalletProvider';
 import { encodeFunctionData } from 'viem';
-import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '@/config';
 
 interface AMAMessage {
   id: number;
@@ -20,9 +20,10 @@ interface AMAMessage {
 
 interface AMAMessageCardProps {
   message: AMAMessage;
+  tipAmount?: bigint;
 }
 
-export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
+export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
   const { isConnected, sendCalls } = useWallet();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoved, setIsLoved] = useState(false);
@@ -84,6 +85,45 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
     }
   };
 
+  const handleTip = async () => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    if (!message.blockchainId || !message.amaId) {
+      toast.error('Blockchain data not available');
+      return;
+    }
+
+    const tipToast = toast.loading('Preparing tip...');
+    try {
+      const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
+
+      if (typeof tipAmount === 'bigint' && tipAmount > 0n) {
+        const approveData = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [AMA_CONTRACT_ADDRESS, tipAmount],
+        });
+        calls.push({ to: USDC_CONTRACT_ADDRESS, data: approveData });
+      }
+
+      const tipData = encodeFunctionData({
+        abi: AMA_CONTRACT_ABI,
+        functionName: 'tipAMAMessage',
+        args: [message.amaId, message.blockchainId],
+      });
+      calls.push({ to: AMA_CONTRACT_ADDRESS, data: tipData });
+
+      await sendCalls(calls);
+      toast.success('Tip sent successfully!', { id: tipToast });
+    } catch (error) {
+      console.error('Error tipping message:', error);
+      toast.error('Failed to tip message', { id: tipToast });
+    }
+  };
+
   const handleSaveAsImage = async () => {
     const cardElement = document.getElementById(`ama-message-${message.id}`);
     if (!cardElement) {
@@ -91,8 +131,9 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
       return;
     }
 
+    let toastId: string | number | undefined;
     try {
-      toast.loading('Generating image...');
+      toastId = toast.loading('Generating image...');
       
       // Capture the card element
       const canvas = await html2canvas(cardElement, {
@@ -101,41 +142,43 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
         logging: false,
       });
 
-      // Create a new canvas with brand text
+      // Create a new canvas with brand header area
       const finalCanvas = document.createElement('canvas');
       const ctx = finalCanvas.getContext('2d');
       if (!ctx) {
-        toast.error('Failed to create canvas');
+        if (toastId) toast.error('Failed to create canvas', { id: toastId });
+        else toast.error('Failed to create canvas');
         return;
       }
 
-      // Set canvas size with padding for brand
-      const padding = 40;
+      // Header height to place brand at the top
+      const headerHeight = 60;
       finalCanvas.width = canvas.width;
-      finalCanvas.height = canvas.height + padding;
+      finalCanvas.height = canvas.height + headerHeight;
 
       // Fill background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-      // Draw the captured card
-      ctx.drawImage(canvas, 0, 0);
-
-      // Add BaseStory brand text at bottom right
-      ctx.font = 'bold 24px Bangers, cursive';
-      ctx.fillStyle = '#0052FF'; // Blue color for "Base"
-      ctx.textAlign = 'right';
-      ctx.fillText('Base', finalCanvas.width - 20, finalCanvas.height - 10);
-      
-      // Measure "Base" to position "Story"
+      // Add BaseStory brand text at top-left
+      ctx.font = 'bold 28px Bangers, cursive';
+      ctx.textAlign = 'left';
+      const x = 20;
+      const y = 40; // within header
+      ctx.fillStyle = '#0052FF'; // Blue for "Base"
+      ctx.fillText('Base', x, y);
       const baseWidth = ctx.measureText('Base').width;
-      ctx.fillStyle = '#000000'; // Black color for "Story"
-      ctx.fillText('Story', finalCanvas.width - baseWidth - 25, finalCanvas.height - 10);
+      ctx.fillStyle = '#000000'; // Black for "Story"
+      ctx.fillText('Story', x + baseWidth + 2, y);
+
+      // Draw the captured card below the header
+      ctx.drawImage(canvas, 0, headerHeight);
 
       // Convert to blob and download
       finalCanvas.toBlob((blob) => {
         if (!blob) {
-          toast.error('Failed to create image');
+          if (toastId) toast.error('Failed to create image', { id: toastId });
+          else toast.error('Failed to create image');
           return;
         }
 
@@ -148,11 +191,12 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        toast.success('Image saved successfully!');
+        toast.success('Image saved successfully!', { id: toastId });
       }, 'image/png');
     } catch (error) {
       console.error('Error saving image:', error);
-      toast.error('Failed to save image');
+      if (toastId) toast.error('Failed to save image', { id: toastId });
+      else toast.error('Failed to save image');
     }
   };
 
@@ -212,6 +256,7 @@ export const AMAMessageCard = ({ message }: AMAMessageCardProps) => {
         </button>
 
         <button
+          onClick={handleTip}
           className="flex items-center gap-1.5 sm:gap-2 transition-colors hover:text-primary group"
           aria-label="Tip"
         >
