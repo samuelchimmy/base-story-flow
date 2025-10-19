@@ -109,8 +109,10 @@ export type Database = {
     }
     Functions: {
       increment_view_count: {
-        Args: { story_id_to_inc: number }
-        Returns: undefined
+        Args:
+          | { contract_addr?: string; story_id_to_inc: number }
+          | { story_id_to_inc: number }
+        Returns: number
       }
     }
     Enums: {
