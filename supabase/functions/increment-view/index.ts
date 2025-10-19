@@ -17,20 +17,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { storyId } = await req.json();
+    const { storyId, contractAddress } = await req.json();
 
-    if (!storyId) {
+    if (!storyId || !contractAddress) {
       return new Response(
-        JSON.stringify({ error: 'storyId is required' }),
+        JSON.stringify({ error: 'storyId and contractAddress are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log(`Incrementing view count for story ${storyId}`);
 
-    // Call the database function to increment view count
-    const { error } = await supabase.rpc('increment_view_count', {
-      story_id_to_inc: storyId
+    // Increment view count for this contract + story
+    const { data: newCount, error } = await supabase.rpc('increment_view_count', {
+      story_id_to_inc: storyId,
+      contract_addr: contractAddress
     });
 
     if (error) {
@@ -41,12 +42,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get updated view count
+    // Get updated view count scoped by contract
     const { data, error: fetchError } = await supabase
       .from('story_views')
       .select('view_count')
       .eq('story_id', storyId)
-      .single();
+      .eq('contract_address', contractAddress)
+      .maybeSingle();
 
     if (fetchError) {
       console.error('Error fetching updated view count:', fetchError);
@@ -56,10 +58,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`View count for story ${storyId} is now ${data.view_count}`);
+    console.log(`View count for story ${storyId} is now ${data?.view_count ?? newCount ?? 'unknown'}`);
 
     return new Response(
-      JSON.stringify({ success: true, viewCount: data.view_count }),
+      JSON.stringify({ success: true, viewCount: data?.view_count ?? newCount ?? 0 }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

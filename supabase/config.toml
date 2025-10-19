@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.increment-view]
 verify_jwt = false
+
+[functions.get-views]
+verify_jwt = false

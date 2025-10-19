@@ -87,17 +87,17 @@ export type Database = {
       }
       story_views: {
         Row: {
-          contract_address: string | null
+          contract_address: string
           story_id: number
           view_count: number
         }
         Insert: {
-          contract_address?: string | null
+          contract_address: string
           story_id: number
           view_count?: number
         }
         Update: {
-          contract_address?: string | null
+          contract_address?: string
           story_id?: number
           view_count?: number
         }
