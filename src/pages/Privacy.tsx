@@ -162,20 +162,20 @@ const Privacy = () => {
                 </p>
               </section>
 
-              <section>
+              <section className="text-center">
                 <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
-                  11. Contact Us
+                  Contact Us
                 </h2>
                 <p className="leading-relaxed mb-2">
                   For privacy inquiries, requests, or concerns, please contact:
                 </p>
-                <p className="leading-relaxed flex items-center gap-1 flex-wrap">
+                <p className="leading-relaxed flex items-center justify-center gap-1 flex-wrap mb-1">
                   <a href="mailto:privacy@basestory.app" className="text-primary hover:underline inline-flex items-center gap-1">
                     <Mail className="w-3 h-3" />
                     privacy@basestory.app
                   </a>
                 </p>
-                <p className="leading-relaxed flex items-center gap-1 flex-wrap">
+                <p className="leading-relaxed flex items-center justify-center gap-1 flex-wrap">
                   <a href="https://www.basestory.app" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                     <Globe className="w-3 h-3" />
                     www.basestory.app
