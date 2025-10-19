@@ -112,14 +112,11 @@ export type Database = {
     }
     Functions: {
       increment_view_count: {
-        Args:
-          | {
-              contract_addr: string
-              story_created_at_ts: number
-              story_id_to_inc: number
-            }
-          | { contract_addr?: string; story_id_to_inc: number }
-          | { story_id_to_inc: number }
+        Args: {
+          contract_addr: string
+          story_created_at_ts: number
+          story_id_to_inc: number
+        }
         Returns: number
       }
     }
