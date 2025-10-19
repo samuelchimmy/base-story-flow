@@ -8,11 +8,11 @@ const About = () => {
       <main className="flex-1 py-8 sm:py-12">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 md:p-10 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">About BaseStory</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">About BaseStory</h1>
             
-            <div className="space-y-6 text-sm sm:text-base text-muted-foreground">
+            <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm text-muted-foreground">
               <section>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
                   What's BaseStory?
                 </h2>
                 <p className="leading-relaxed">
@@ -27,10 +27,10 @@ const About = () => {
               </section>
 
               <section>
-                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3">
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
                   Host Your Own Anonymous AMA
                 </h2>
-                <p className="leading-relaxed mb-3">
+                <p className="leading-relaxed mb-2">
                   Want to connect with your followers without the pressure? Create an AMA (Ask Me Anything) session anyone with your link can send you a message anonymously.
                 </p>
                 <p className="leading-relaxed mb-2">You decide the rules:</p>
@@ -46,8 +46,8 @@ const About = () => {
                 </p>
               </section>
 
-              <section className="pt-4">
-                <p className="text-base sm:text-lg font-medium text-foreground">
+              <section className="pt-2">
+                <p className="text-sm sm:text-base font-medium text-foreground">
                   Say what you want. Earn from it. Stay anonymous.
                 </p>
               </section>
