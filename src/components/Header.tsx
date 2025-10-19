@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { FundAccountButton } from './FundAccountButton';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const Header = () => {
   const { isConnected, username, universalAddress, balance, loading, connect, disconnect } = useWallet();
@@ -26,10 +27,10 @@ export const Header = () => {
     <header className="w-full border-b border-border bg-background sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="font-bangers text-2xl sm:text-3xl md:text-4xl leading-none">
+          <Link to="/" className="font-bangers text-2xl sm:text-3xl md:text-4xl leading-none hover:opacity-80 transition-opacity cursor-pointer">
             <span className="text-primary">Base</span>
             <span className="text-foreground">Story</span>
-          </h1>
+          </Link>
         </div>
         
         <div className="flex items-center gap-2">
