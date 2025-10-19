@@ -32,14 +32,15 @@ export const SessionsDrawer = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!open || !subAccountAddress) return;
-    if (activePanel === 'ama-sessions' && userAMAs.length === 0) {
+    if (!subAccountAddress || !activePanel) return;
+    
+    if (activePanel === 'ama-sessions') {
       fetchUserAMAs();
     }
-    if (activePanel === 'story-history' && userStories.length === 0) {
+    if (activePanel === 'story-history') {
       fetchUserStories();
     }
-  }, [open, subAccountAddress, activePanel]);
+  }, [subAccountAddress, activePanel]);
 
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
