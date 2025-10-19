@@ -108,50 +108,48 @@ export const SessionsDrawer = () => {
                 AMA sessions
               </AccordionTrigger>
               <AccordionContent>
-                {activePanel === 'ama-sessions' ? (
-                  !subAccountAddress ? (
-                    <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
-                  ) : userAMAs.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No AMAs created yet</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {userAMAs.map((ama) => (
-                        <div
-                          key={ama.id.toString()}
-                          className="p-3 rounded-lg border border-border"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <button
-                              onClick={() => {
-                                navigate(`/ama/${ama.id.toString()}`);
-                                setOpen(false);
-                              }}
-                              className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-                            >
-                              <p className="text-sm font-medium truncate">{ama.headingURI}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {Number(ama.messageCount)} messages
-                              </p>
-                            </button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 flex-shrink-0 text-primary"
-                              aria-label="Copy AMA link"
-                              title="Copy AMA link"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyAMALink(ama.id.toString());
-                              }}
-                            >
-                              <Share2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                {!subAccountAddress ? (
+                  <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
+                ) : userAMAs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No AMAs created yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {userAMAs.map((ama) => (
+                      <div
+                        key={ama.id.toString()}
+                        className="p-3 rounded-lg border border-border"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            onClick={() => {
+                              navigate(`/ama/${ama.id.toString()}`);
+                              setOpen(false);
+                            }}
+                            className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                          >
+                            <p className="text-sm font-medium truncate">{ama.headingURI}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {Number(ama.messageCount)} messages
+                            </p>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 flex-shrink-0 text-primary"
+                            aria-label="Copy AMA link"
+                            title="Copy AMA link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyAMALink(ama.id.toString());
+                            }}
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      ))}
-                    </div>
-                  )
-                ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
 
@@ -161,30 +159,28 @@ export const SessionsDrawer = () => {
                 Story History
               </AccordionTrigger>
               <AccordionContent>
-                {activePanel === 'story-history' ? (
-                  !subAccountAddress ? (
-                    <p className="text-xs text-muted-foreground">Connect wallet to view your stories</p>
-                  ) : userStories.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No stories posted yet</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {userStories.map((story) => (
-                        <div
-                          key={story.id.toString()}
-                          className="p-3 rounded-lg border border-border"
-                        >
-                          <p className="text-sm line-clamp-2">{story.contentURI}</p>
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span>❤️ {Number(story.loveCount)}</span>
-                            <span>
-                              {new Date(Number(story.timestamp) * 1000).toLocaleDateString()}
-                            </span>
-                          </div>
+                {!subAccountAddress ? (
+                  <p className="text-xs text-muted-foreground">Connect wallet to view your stories</p>
+                ) : userStories.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No stories posted yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {userStories.map((story) => (
+                      <div
+                        key={story.id.toString()}
+                        className="p-3 rounded-lg border border-border"
+                      >
+                        <p className="text-sm line-clamp-2">{story.contentURI}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>❤️ {Number(story.loveCount)}</span>
+                          <span>
+                            {new Date(Number(story.timestamp) * 1000).toLocaleDateString()}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )
-                ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
           </Accordion>
