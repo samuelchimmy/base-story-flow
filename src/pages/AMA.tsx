@@ -62,16 +62,15 @@ export default function AMA() {
       const amaId = BigInt(id!);
       const messagesData = await getAMAMessages(amaId, 0n, 100n);
       
-      // Convert blockchain messages to UI-friendly format
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,
         blockchainId: msg.id,
         amaId: msg.amaId,
         content: msg.contentURI,
         sender_sub_account: msg.sender,
-        love_count: Number(msg.loveCount),
-        tip_count: Number(msg.tipCount),
-        created_at: new Date(Number(msg.timestamp) * 1000).toISOString(),
+        love_count: Number(msg.loveCount ?? 0n),
+        tip_count: 0, // Not provided by contract; can be tracked off-chain if needed
+        created_at: new Date(Number(msg.createdAt) * 1000).toISOString(),
       }));
       
       setMessages(uiMessages);

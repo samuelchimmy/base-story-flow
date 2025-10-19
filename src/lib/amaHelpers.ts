@@ -18,8 +18,7 @@ export interface AMAMessage {
   sender: string;
   contentURI: string;
   loveCount: bigint;
-  tipCount: bigint;
-  timestamp: bigint;
+  createdAt: bigint;
 }
 
 /**
