@@ -1,6 +1,6 @@
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Shield, Lock, Database, Eye, Server, Users, AlertCircle, Mail, Globe } from 'lucide-react';
+import { Mail, Globe } from 'lucide-react';
 
 const Privacy = () => {
   return (
@@ -9,22 +9,19 @@ const Privacy = () => {
       <main className="flex-1 py-8 sm:py-12">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 md:p-10 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Privacy Policy</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Privacy Policy</h1>
             
-            <div className="space-y-6 text-sm sm:text-base text-muted-foreground text-left">
+            <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm text-muted-foreground text-left">
               <div className="text-center space-y-1">
-                <p className="text-xs sm:text-sm">Effective Date: October 19, 2025</p>
-                <p className="text-xs sm:text-sm">App Name: BaseStory</p>
-                <p className="text-xs sm:text-sm">Platform: Built on Base Network</p>
+                <p className="text-[10px] sm:text-xs">Effective Date: October 19, 2025</p>
+                <p className="text-[10px] sm:text-xs">App Name: BaseStory</p>
+                <p className="text-[10px] sm:text-xs">Platform: Built on Base Network</p>
               </div>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    1. Introduction
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  1. Introduction
+                </h2>
                 <p className="leading-relaxed">
                   BaseStory is a decentralized social platform that allows creators to post anonymous confessions, host AMA sessions, and receive tips from their followers all powered by Base Universal Accounts.
                 </p>
@@ -34,40 +31,34 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Database className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    2. What We Collect
-                  </h2>
-                </div>
-                <p className="leading-relaxed mb-3">
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  2. What We Collect
+                </h2>
+                <p className="leading-relaxed mb-2">
                   We collect minimal data necessary to make BaseStory work seamlessly and securely.
                 </p>
                 
-                <h3 className="font-semibold text-foreground mb-2">a. Information You Provide</h3>
-                <ul className="list-none space-y-1 mb-3">
+                <h3 className="font-semibold text-foreground mb-1 text-xs sm:text-sm">a. Information You Provide</h3>
+                <ul className="list-none space-y-1 mb-2">
                   <li>• <strong>Wallet Address:</strong> We use your Base Universal Account to identify and process tips and activity on the app.</li>
                   <li>• <strong>AMA Settings & Content:</strong> Any AMA titles, descriptions, and messages you post or receive (depending on visibility settings).</li>
                   <li>• <strong>Tips & Transactions:</strong> Details of onchain transactions such as tip amounts, sender/receiver wallet addresses, and timestamps (stored on Base blockchain).</li>
                 </ul>
 
-                <h3 className="font-semibold text-foreground mb-2">b. Automatically Collected Information</h3>
+                <h3 className="font-semibold text-foreground mb-1 text-xs sm:text-sm">b. Automatically Collected Information</h3>
                 <ul className="list-none space-y-1">
                   <li>• <strong>Device Metadata:</strong> Non-identifiable data such as device type, browser type, and OS for performance optimization.</li>
                   <li>• <strong>Analytics Data:</strong> Aggregated insights on app usage (e.g., number of confessions, AMA sessions, and tips).</li>
                 </ul>
-                <p className="leading-relaxed mt-3">
+                <p className="leading-relaxed mt-2">
                   We do not collect personal identifiers such as real names, emails, or contact details unless explicitly provided by you (e.g., for support).
                 </p>
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Eye className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    3. Anonymity and Data on the Blockchain
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  3. Anonymity and Data on the Blockchain
+                </h2>
                 <p className="leading-relaxed mb-2">
                   BaseStory uses Base Universal Accounts to manage anonymous user interactions.
                 </p>
@@ -79,12 +70,9 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Users className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    4. How We Use Your Data
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  4. How We Use Your Data
+                </h2>
                 <p className="leading-relaxed mb-2">We use collected data to:</p>
                 <ul className="list-none space-y-1 mb-2">
                   <li>• Enable anonymous posting and AMA sessions.</li>
@@ -98,12 +86,9 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Server className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    5. Data Storage and Retention
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  5. Data Storage and Retention
+                </h2>
                 <ul className="list-none space-y-1 mb-2">
                   <li>• <strong>Onchain Data:</strong> Stored permanently on the Base blockchain (immutable).</li>
                   <li>• <strong>Offchain Data:</strong> Minimal session data or metadata may be stored temporarily on secure servers to improve performance.</li>
@@ -114,12 +99,9 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <AlertCircle className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    6. Your Rights
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  6. Your Rights
+                </h2>
                 <p className="leading-relaxed mb-2">
                   Depending on your jurisdiction (e.g., GDPR or CCPA), you may have the right to:
                 </p>
@@ -127,21 +109,19 @@ const Privacy = () => {
                   <li>• Request information about what data we hold.</li>
                   <li>• Withdraw consent for data processing.</li>
                 </ul>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed flex items-center gap-1 flex-wrap">
                   To exercise these rights, contact us at{' '}
-                  <a href="mailto:privacy@basestory.app" className="text-primary hover:underline">
+                  <a href="mailto:privacy@basestory.app" className="text-primary hover:underline inline-flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
                     privacy@basestory.app
                   </a>
                 </p>
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Lock className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    7. Security
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  7. Security
+                </h2>
                 <p className="leading-relaxed mb-2">
                   We implement industry-standard encryption, secure access protocols, and decentralized architecture to protect your data.
                   However, since BaseStory operates partially on the blockchain, we cannot modify or delete onchain data once published.
@@ -149,12 +129,9 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Globe className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    8. Third-Party Services
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  8. Third-Party Services
+                </h2>
                 <p className="leading-relaxed mb-2">
                   BaseStory may integrate with third-party tools such as:
                 </p>
@@ -168,53 +145,46 @@ const Privacy = () => {
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Users className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    9. Children's Privacy
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  9. Children's Privacy
+                </h2>
                 <p className="leading-relaxed">
                   BaseStory is intended for users aged 18 and above. We do not knowingly collect data from minors.
                 </p>
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <AlertCircle className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    10. Changes to this Policy
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  10. Changes to this Policy
+                </h2>
                 <p className="leading-relaxed">
                   We may update this Privacy Policy from time to time. The latest version will always be available within the app and on our website. Continued use of BaseStory constitutes acceptance of any changes.
                 </p>
               </section>
 
               <section>
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Mail className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-                    11. Contact Us
-                  </h2>
-                </div>
+                <h2 className="text-sm sm:text-base font-semibold text-foreground mb-2">
+                  11. Contact Us
+                </h2>
                 <p className="leading-relaxed mb-2">
                   For privacy inquiries, requests, or concerns, please contact:
                 </p>
-                <p className="leading-relaxed">
-                  <a href="mailto:privacy@basestory.app" className="text-primary hover:underline">
+                <p className="leading-relaxed flex items-center gap-1 flex-wrap">
+                  <a href="mailto:privacy@basestory.app" className="text-primary hover:underline inline-flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
                     privacy@basestory.app
                   </a>
                 </p>
-                <p className="leading-relaxed">
-                  <a href="https://www.basestory.app" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                <p className="leading-relaxed flex items-center gap-1 flex-wrap">
+                  <a href="https://www.basestory.app" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                    <Globe className="w-3 h-3" />
                     www.basestory.app
                   </a>
                 </p>
               </section>
 
-              <section className="pt-4 text-center">
-                <p className="text-base sm:text-lg font-medium text-foreground">
+              <section className="pt-2 text-center">
+                <p className="text-sm sm:text-base font-medium text-foreground">
                   BaseStory Say what you can't. Earn while you do. Stay anonymous.
                 </p>
               </section>
