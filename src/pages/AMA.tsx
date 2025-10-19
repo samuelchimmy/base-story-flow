@@ -33,10 +33,11 @@ export default function AMA() {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      fetchAMA();
-      fetchMessages();
-    }
+    if (!id) return;
+    (async () => {
+      await fetchAMA();
+      await fetchMessages();
+    })();
   }, [id]);
 
   const fetchAMA = async () => {
@@ -60,7 +61,14 @@ export default function AMA() {
   const fetchMessages = async () => {
     try {
       const amaId = BigInt(id!);
-      const messagesData = await getAMAMessages(amaId, 0n, 100n);
+      // Compute pagination from the end if we know total count
+      let start = 0n;
+      const limit = 100n;
+      if (ama?.messageCount && ama.messageCount > 0n) {
+        start = ama.messageCount > limit ? ama.messageCount - limit : 0n;
+      }
+
+      const messagesData = await getAMAMessages(amaId, start, limit);
       
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,
@@ -69,13 +77,20 @@ export default function AMA() {
         content: msg.contentURI,
         sender_sub_account: msg.sender,
         love_count: Number(msg.loveCount ?? 0n),
-        tip_count: 0, // Not provided by contract; can be tracked off-chain if needed
+        tip_count: 0,
         created_at: new Date(Number(msg.createdAt) * 1000).toISOString(),
       }));
       
       setMessages(uiMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      const msg = String(error);
+      if (msg.includes('AMAMessagesPrivate')) {
+        toast.info('Messages are private for this AMA');
+      } else {
+        toast.error('Failed to load messages');
+      }
+      setMessages([]);
     }
   };
 
@@ -129,17 +144,7 @@ export default function AMA() {
           data: approveCalldata,
         });
 
-        // Step 2: Transfer USDC to AMA contract
-        const transferCalldata = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'transfer',
-          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
-        });
-
-        calls.push({
-          to: USDC_CONTRACT_ADDRESS,
-          data: transferCalldata,
-        });
+        // Note: Contract will handle transferFrom internally using the allowance
       }
 
       toast.loading('Posting message to blockchain...', { id: sendToast });
