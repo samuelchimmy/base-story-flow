@@ -63,8 +63,13 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
 
         (async () => {
           try {
+            const storyCreatedAt = Math.floor(story.timestamp.getTime() / 1000);
             const { data, error } = await supabase.functions.invoke('increment-view', {
-              body: { storyId: parseInt(story.id), contractAddress: CONTRACT_ADDRESS },
+              body: { 
+                storyId: parseInt(story.id), 
+                contractAddress: CONTRACT_ADDRESS,
+                storyCreatedAt,
+              },
             });
             if (error) {
               console.error('Error incrementing view:', error);

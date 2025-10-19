@@ -16,18 +16,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { contractAddress } = await req.json();
+    const { contractAddress, stories } = await req.json();
 
-    if (!contractAddress) {
+    if (!contractAddress || !stories) {
       return new Response(
-        JSON.stringify({ error: 'contractAddress is required' }),
+        JSON.stringify({ error: 'contractAddress and stories array are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Fetch view counts for all story instances
     const { data, error } = await supabase
       .from('story_views')
-      .select('story_id, view_count')
+      .select('story_id, story_created_at, view_count')
       .eq('contract_address', contractAddress);
 
     if (error) {
@@ -38,7 +39,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const counts = Object.fromEntries((data || []).map((r: any) => [String(r.story_id), r.view_count]));
+    // Map view counts by matching both story_id and created_at timestamp
+    const counts: Record<string, number> = {};
+    
+    for (const story of stories) {
+      const matchingView = data?.find(
+        (v: any) => String(v.story_id) === String(story.id) && 
+                    String(v.story_created_at) === String(story.createdAt)
+      );
+      counts[String(story.id)] = matchingView?.view_count || 0;
+    }
 
     return new Response(
       JSON.stringify({ success: true, counts }),

@@ -45,9 +45,18 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
       // Filter out any stories marked as deleted by the new contract
       const activeStories = data.filter(story => !story.deleted);
 
-      // Fetch view counts via Edge Function scoped by contract
+      // Prepare stories array with timestamps for view count matching
+      const storiesForViews = activeStories.map(story => ({
+        id: story.id.toString(),
+        createdAt: Number(story.timestamp),
+      }));
+
+      // Fetch view counts via Edge Function scoped by contract and timestamps
       const { data: viewsResp, error: viewsErr } = await supabase.functions.invoke('get-views', {
-        body: { contractAddress: CONTRACT_ADDRESS },
+        body: { 
+          contractAddress: CONTRACT_ADDRESS,
+          stories: storiesForViews,
+        },
       });
       if (viewsErr) {
         console.error('Failed to fetch views:', viewsErr);

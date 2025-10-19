@@ -17,21 +17,22 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { storyId, contractAddress } = await req.json();
+    const { storyId, contractAddress, storyCreatedAt } = await req.json();
 
-    if (!storyId || !contractAddress) {
+    if (!storyId || !contractAddress || !storyCreatedAt) {
       return new Response(
-        JSON.stringify({ error: 'storyId and contractAddress are required' }),
+        JSON.stringify({ error: 'storyId, contractAddress, and storyCreatedAt are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Incrementing view count for story ${storyId}`);
+    console.log(`Incrementing view count for story ${storyId} created at ${storyCreatedAt}`);
 
-    // Increment view count for this contract + story
+    // Increment view count for this specific story instance
     const { data: newCount, error } = await supabase.rpc('increment_view_count', {
       story_id_to_inc: storyId,
-      contract_addr: contractAddress
+      contract_addr: contractAddress,
+      story_created_at_ts: storyCreatedAt,
     });
 
     if (error) {
@@ -42,12 +43,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get updated view count scoped by contract
+    // Get updated view count scoped by contract and timestamp
     const { data, error: fetchError } = await supabase
       .from('story_views')
       .select('view_count')
       .eq('story_id', storyId)
       .eq('contract_address', contractAddress)
+      .eq('story_created_at', storyCreatedAt)
       .maybeSingle();
 
     if (fetchError) {

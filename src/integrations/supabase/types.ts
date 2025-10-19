@@ -88,16 +88,19 @@ export type Database = {
       story_views: {
         Row: {
           contract_address: string
+          story_created_at: number
           story_id: number
           view_count: number
         }
         Insert: {
           contract_address: string
+          story_created_at?: number
           story_id: number
           view_count?: number
         }
         Update: {
           contract_address?: string
+          story_created_at?: number
           story_id?: number
           view_count?: number
         }
@@ -110,6 +113,11 @@ export type Database = {
     Functions: {
       increment_view_count: {
         Args:
+          | {
+              contract_addr: string
+              story_created_at_ts: number
+              story_id_to_inc: number
+            }
           | { contract_addr?: string; story_id_to_inc: number }
           | { story_id_to_inc: number }
         Returns: number
