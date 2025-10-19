@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
@@ -33,32 +33,60 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [viewCount, setViewCount] = useState(story.views);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
   const { isConnected, sendCalls } = useWallet();
+  const cardRef = useRef<HTMLElement | null>(null);
+  const VIEW_TTL_MS = 1000 * 60 * 60 * 12; // 12h unique view window
   const maxPreviewLength = 280;
 
-  // Increment view count when story is viewed
+  // Increment view count only when card becomes visible and not viewed recently
   useEffect(() => {
-    if (!hasBeenViewed) {
-      const incrementView = async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke('increment-view', {
-            body: { storyId: parseInt(story.id) },
-          });
+    if (hasBeenViewed) return;
 
-          if (error) {
-            console.error('Error incrementing view:', error);
-            return;
+    try {
+      if (typeof window === 'undefined') return;
+
+      const key = `basestory:viewed:${story.id}`;
+      const lastViewed = Number(localStorage.getItem(key) || '0');
+      const now = Date.now();
+
+      // If viewed within TTL, skip increment
+      if (lastViewed && now - lastViewed < VIEW_TTL_MS) {
+        setHasBeenViewed(true);
+        return;
+      }
+
+      const el = cardRef.current;
+      if (!el) return;
+
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+
+        (async () => {
+          try {
+            const { data, error } = await supabase.functions.invoke('increment-view', {
+              body: { storyId: parseInt(story.id) },
+            });
+            if (error) {
+              console.error('Error incrementing view:', error);
+              return;
+            }
+            if (data?.viewCount !== undefined) {
+              setViewCount(data.viewCount);
+            }
+            localStorage.setItem(key, String(Date.now()));
+            setHasBeenViewed(true);
+          } catch (err) {
+            console.error('Failed to increment view:', err);
+          } finally {
+            observer.disconnect();
           }
+        })();
+      }, { threshold: 0.5 });
 
-          if (data?.viewCount) {
-            setViewCount(data.viewCount);
-          }
-        } catch (error) {
-          console.error('Failed to increment view:', error);
-        }
-      };
-
-      incrementView();
-      setHasBeenViewed(true);
+      observer.observe(el);
+      return () => observer.disconnect();
+    } catch (err) {
+      console.error('View tracking init failed:', err);
     }
   }, [story.id, hasBeenViewed]);
 
@@ -190,7 +218,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   }
 
   return (
-    <article className="bg-card border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all hover:shadow-md">
+    <article ref={cardRef} className="bg-card border border-border rounded-2xl p-4 sm:p-5 md:p-6 transition-all hover:shadow-md">
       <div className="flex items-start gap-3 mb-3">
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
           <span className="text-sm sm:text-base font-medium text-muted-foreground">
