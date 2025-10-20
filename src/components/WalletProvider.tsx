@@ -280,6 +280,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
+      const networkConfig = getNetworkConfig(currentNetwork);
       const callsId = await provider.request({
         method: 'wallet_sendCalls',
         params: [
