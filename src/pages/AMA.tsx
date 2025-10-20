@@ -121,47 +121,41 @@ export default function AMA() {
       const amaId = BigInt(id!);
       const messageContent = newMessage.trim();
 
-      // Encode the postMessageToAMA function call
-      const postMessageCalldata = encodeFunctionData({
-        abi: AMA_CONTRACT_ABI,
-        functionName: 'postMessageToAMA',
-        args: [amaId, messageContent],
-      });
-
-      // Build all calls in one atomic batch
-      const calls = [];
-
-      // If tip is required, approve and transfer USDC to the AMA contract
+      // If tip is required, approve USDC first in a separate transaction
       if (ama.requiresTip) {
         const tipAmountInUSDC = ama.tipAmount;
 
-        toast.loading('Preparing tip and message...', { id: sendToast });
+        toast.loading('Approving USDC...', { id: sendToast });
 
-        // Step 1: Approve USDC transfer to AMA contract (not creator)
+        // Send approval transaction first
         const approveCalldata = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'approve',
           args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
         });
 
-        calls.push({
+        await sendCalls([{
           to: USDC_CONTRACT_ADDRESS,
           data: approveCalldata,
-        });
+        }]);
 
-        // Note: Contract will handle transferFrom internally using the allowance
+        // Small delay to ensure approval is committed
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       toast.loading('Posting message to blockchain...', { id: sendToast });
 
-      // Add the message posting call
-      calls.push({
-        to: AMA_CONTRACT_ADDRESS,
-        data: postMessageCalldata,
+      // Now send the message posting call
+      const postMessageCalldata = encodeFunctionData({
+        abi: AMA_CONTRACT_ABI,
+        functionName: 'postMessageToAMA',
+        args: [amaId, messageContent],
       });
 
-      // Send all calls atomically
-      await sendCalls(calls);
+      await sendCalls([{
+        to: AMA_CONTRACT_ADDRESS,
+        data: postMessageCalldata,
+      }]);
 
       toast.success('Message sent successfully!', { id: sendToast });
       setNewMessage('');
