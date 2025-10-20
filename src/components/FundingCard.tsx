@@ -105,93 +105,153 @@ export const FundingCard = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px] p-5">
+      <DialogContent className="max-w-[90vw] sm:max-w-[420px] p-5 mx-4">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">Fund Your Account</DialogTitle>
           <p className="text-xs text-muted-foreground">Send USDC for tipping stories</p>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="text-center py-3 border-b border-border">
-            <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
-            <p className="text-base font-semibold">{currentBalance} USDC</p>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-xs text-center text-muted-foreground">Your Deposit Address</p>
-            <div className="bg-muted rounded-lg p-4 border border-border">
-              <div className="flex items-center justify-center gap-2">
-                <code className="text-xs font-mono break-all text-center">
-                  {address}
-                </code>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleCopy}
-                  className="h-7 w-7 p-0 flex-shrink-0"
-                >
-                  {copied ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            {status === 'waiting' && (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Waiting for deposit...
-                </span>
-              </div>
-            )}
-            
-            {status === 'checking' && (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-xs text-foreground">
-                  Checking blockchain...
-                </span>
-              </div>
-            )}
-            
-            {status === 'success' && depositInfo && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-1 text-green-600">
-                  <Check className="h-4 w-4" />
-                  <span className="text-xs font-medium">
-                    Received {depositInfo.amount} {depositInfo.token}!
-                  </span>
+          {status === 'success' && depositInfo ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <svg
+                    className="w-20 h-20 animate-scale-in"
+                    viewBox="0 0 100 100"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      className="text-green-500"
+                      fill="none"
+                      strokeDasharray="283"
+                      strokeDashoffset="0"
+                      style={{
+                        animation: 'drawCircle 0.6s ease-out forwards'
+                      }}
+                    />
+                    <path
+                      d="M30 50 L45 65 L70 35"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-green-500"
+                      fill="none"
+                      strokeDasharray="70"
+                      strokeDashoffset="70"
+                      style={{
+                        animation: 'drawCheck 0.4s ease-out 0.3s forwards'
+                      }}
+                    />
+                  </svg>
                 </div>
+              </div>
+              <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                <p className="text-lg font-semibold text-green-600">
+                  Deposit Received!
+                </p>
+                <p className="text-sm text-foreground">
+                  {depositInfo.amount} {depositInfo.token}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Closing in {countdown}s...
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <>
+              <div className="text-center py-3 border-b border-border">
+                <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+                <p className="text-base font-semibold">{currentBalance} USDC</p>
+              </div>
 
-          <div className="space-y-1 pt-2 text-center">
-            <p className="text-xs font-medium text-foreground">✨ Transactions on BaseStory are gasless</p>
-            <p className="text-xs text-muted-foreground">Send USDC from any wallet for tipping</p>
-            <p className="text-xs text-muted-foreground">Usually takes 10-30 seconds</p>
-            <p className="text-xs text-muted-foreground">Minimum: 0.1 USDC</p>
-          </div>
+              <div className="space-y-3">
+                <p className="text-xs text-center text-muted-foreground">Your Deposit Address</p>
+                <div className="bg-muted rounded-lg p-4 border border-border">
+                  <div className="flex items-center justify-center gap-2">
+                    <code className="text-xs font-mono break-all text-center">
+                      {address}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCopy}
+                      className="h-7 w-7 p-0 flex-shrink-0"
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onOpenChange(false)}
-            className="w-full text-xs"
-            disabled={status === 'success'}
-          >
-            Close
-          </Button>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                {status === 'waiting' && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      Waiting for deposit...
+                    </span>
+                  </div>
+                )}
+                
+                {status === 'checking' && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-xs text-foreground">
+                      Checking blockchain...
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1 pt-2 text-center">
+                <p className="text-xs font-medium text-foreground">✨ Transactions on BaseStory are gasless</p>
+                <p className="text-xs text-muted-foreground">Send USDC from any wallet for tipping</p>
+                <p className="text-xs text-muted-foreground">Usually takes 10-30 seconds</p>
+                <p className="text-xs text-muted-foreground">Minimum: 0.1 USDC</p>
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onOpenChange(false)}
+                className="w-full text-xs"
+              >
+                Close
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
+      <style>{`
+        @keyframes drawCircle {
+          from {
+            stroke-dashoffset: 283;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+        @keyframes drawCheck {
+          from {
+            stroke-dashoffset: 70;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
     </Dialog>
   );
 };
