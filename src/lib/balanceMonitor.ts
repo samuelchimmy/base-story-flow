@@ -12,11 +12,10 @@ const USDC_ABI = [
 
 interface BalanceSnapshot {
   usdc: string;
-  eth: string;
 }
 
 export interface DepositResult {
-  token: 'USDC' | 'ETH';
+  token: 'USDC';
   amount: string;
   newBalance: string;
 }
@@ -35,18 +34,14 @@ export async function monitorDeposit(
     if (!isActive) return;
     
     try {
-      const [currentUsdc, currentEth] = await Promise.all([
-        publicClient.readContract({
-          address: usdcAddress,
-          abi: USDC_ABI,
-          functionName: 'balanceOf',
-          args: [address],
-        } as any),
-        publicClient.getBalance({ address }),
-      ]);
+      const currentUsdc = await publicClient.readContract({
+        address: usdcAddress,
+        abi: USDC_ABI,
+        functionName: 'balanceOf',
+        args: [address],
+      } as any);
       
       const usdcBalance = formatUnits(currentUsdc as bigint, 6);
-      const ethBalance = formatEther(currentEth);
       
       // Check for USDC deposit
       if (parseFloat(usdcBalance) > parseFloat(initialBalances.usdc)) {
@@ -57,20 +52,6 @@ export async function monitorDeposit(
           token: 'USDC',
           amount: depositAmount,
           newBalance: usdcBalance,
-        });
-        isActive = false;
-        return;
-      }
-      
-      // Check for ETH deposit
-      if (parseFloat(ethBalance) > parseFloat(initialBalances.eth)) {
-        const depositAmount = (
-          parseFloat(ethBalance) - parseFloat(initialBalances.eth)
-        ).toFixed(4);
-        onDeposit({
-          token: 'ETH',
-          amount: depositAmount,
-          newBalance: ethBalance,
         });
         isActive = false;
         return;

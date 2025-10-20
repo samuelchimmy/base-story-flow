@@ -44,25 +44,21 @@ export const FundingCard = ({
         const client = getPublicClient(currentNetwork);
         const usdcAddress = getContractAddress(currentNetwork, 'usdc');
         
-        const [usdcBalance, ethBalance] = await Promise.all([
-          client.readContract({
-            address: usdcAddress,
-            abi: [{
-              constant: true,
-              inputs: [{ name: '_owner', type: 'address' }],
-              name: 'balanceOf',
-              outputs: [{ name: 'balance', type: 'uint256' }],
-              type: 'function',
-            }],
-            functionName: 'balanceOf',
-            args: [address as `0x${string}`],
-          } as any),
-          client.getBalance({ address: address as `0x${string}` }),
-        ]);
+        const usdcBalance = await client.readContract({
+          address: usdcAddress,
+          abi: [{
+            constant: true,
+            inputs: [{ name: '_owner', type: 'address' }],
+            name: 'balanceOf',
+            outputs: [{ name: 'balance', type: 'uint256' }],
+            type: 'function',
+          }],
+          functionName: 'balanceOf',
+          args: [address as `0x${string}`],
+        } as any);
 
         const initialBalances = {
           usdc: formatUnits(usdcBalance as bigint, 6),
-          eth: formatEther(ethBalance),
         };
 
         cleanup = await monitorDeposit(
@@ -112,7 +108,7 @@ export const FundingCard = ({
       <DialogContent className="sm:max-w-[420px] p-5">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">Fund Your Account</DialogTitle>
-          <p className="text-xs text-muted-foreground">Send USDC or ETH to get started</p>
+          <p className="text-xs text-muted-foreground">Send USDC for tipping stories</p>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -179,9 +175,10 @@ export const FundingCard = ({
           </div>
 
           <div className="space-y-1 pt-2 text-center">
-            <p className="text-xs text-muted-foreground">Send USDC or ETH from any wallet</p>
+            <p className="text-xs font-medium text-foreground">✨ Transactions on BaseStory are gasless</p>
+            <p className="text-xs text-muted-foreground">Send USDC from any wallet for tipping</p>
             <p className="text-xs text-muted-foreground">Usually takes 10-30 seconds</p>
-            <p className="text-xs text-muted-foreground">Minimum: 0.1 USDC or 0.0001 ETH</p>
+            <p className="text-xs text-muted-foreground">Minimum: 0.1 USDC</p>
           </div>
 
           <Button 
