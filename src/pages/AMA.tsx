@@ -6,7 +6,8 @@ import { AMAMessageCard } from '@/components/AMAMessageCard';
 import { useWallet } from '@/components/WalletProvider';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData } from 'viem';
-import { USDC_CONTRACT_ADDRESS, USDC_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
+import { USDC_ABI, AMA_CONTRACT_ABI } from '@/config';
+import { getContractAddress } from '@/networkConfig';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAMA, getAMAMessages, type AMA, type AMAMessage as BlockchainAMAMessage } from '@/lib/amaHelpers';
@@ -109,6 +110,9 @@ export default function AMA() {
     }
 
     if (!ama) return;
+
+    const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
+    const USDC_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'usdc');
 
     setIsSending(true);
     const sendToast = toast.loading('Sending message...');
