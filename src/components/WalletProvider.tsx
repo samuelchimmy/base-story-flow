@@ -287,6 +287,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         version: '2.0',
         chainId: `0x${networkConfig.id.toString(16)}`,
         from: subAccountAddress,
+        atomicRequired: true,
         calls: calls.map(call => ({
           to: call.to,
           data: call.data || '0x',
@@ -294,11 +295,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         })),
       };
 
-      // Add paymaster for mainnet (Base Mainnet)
+      // Add paymaster for Base Mainnet (8453)
       if (networkConfig.id === 8453) {
+        const paymasterUrl = 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f';
+        // Support both capability keys for broader compatibility
         params.capabilities = {
+          paymasterUrl,
           paymasterService: {
-            url: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f',
+            url: paymasterUrl,
           },
         };
       }

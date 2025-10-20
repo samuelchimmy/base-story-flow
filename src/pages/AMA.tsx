@@ -170,9 +170,15 @@ export default function AMA() {
       setTimeout(() => fetchMessages(), 2000);
     } catch (error) {
       console.error('Error sending message:', error);
+      const errMsg =
+        (typeof error === 'string' && error) ||
+        (error as any)?.shortMessage ||
+        (error as any)?.message ||
+        (error as any)?.value?.message ||
+        'An unknown error occurred';
       toast.error('Failed to send message', {
         id: sendToast,
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        description: errMsg,
       });
     } finally {
       setIsSending(false);
