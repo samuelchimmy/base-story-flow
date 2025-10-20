@@ -10,7 +10,7 @@ import {
   DrawerTrigger,
 } from './ui/drawer';
 import { Button } from './ui/button';
-import { X, Share2 } from 'lucide-react';
+import { X, Share2, RefreshCw } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -32,16 +32,39 @@ export const SessionsDrawer = () => {
   const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
   const navigate = useNavigate();
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('[SessionsDrawer] State change:', {
+      open,
+      activePanel,
+      subAccountAddress,
+      universalAddress,
+      currentNetwork,
+    });
+  }, [open, activePanel, subAccountAddress, universalAddress, currentNetwork]);
+
   const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
   const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   useEffect(() => {
-    if ((!subAccountAddress && !universalAddress) || !activePanel) return;
+    console.log('[SessionsDrawer] useEffect triggered:', {
+      hasSubAccount: !!subAccountAddress,
+      hasUniversal: !!universalAddress,
+      activePanel,
+      willFetch: (!!subAccountAddress || !!universalAddress) && !!activePanel,
+    });
+    
+    if ((!subAccountAddress && !universalAddress) || !activePanel) {
+      console.log('[SessionsDrawer] Skipping fetch - missing addresses or no active panel');
+      return;
+    }
     
     if (activePanel === 'ama-sessions') {
+      console.log('[SessionsDrawer] Triggering fetchUserAMAs from main useEffect');
       fetchUserAMAs();
     }
     if (activePanel === 'story-history') {
+      console.log('[SessionsDrawer] Triggering fetchUserStories');
       fetchUserStories();
     }
   }, [subAccountAddress, universalAddress, activePanel, currentNetwork]);
@@ -72,7 +95,11 @@ export const SessionsDrawer = () => {
   };
 
   const fetchUserAMAs = async () => {
-    if (!subAccountAddress && !universalAddress) return;
+    console.log('[SessionsDrawer] fetchUserAMAs called');
+    if (!subAccountAddress && !universalAddress) {
+      console.log('[SessionsDrawer] No addresses available, aborting fetch');
+      return;
+    }
     try {
       console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress, 'universal:', universalAddress);
       const allAMAs = await getAllAMAs(currentNetwork);
@@ -136,7 +163,24 @@ export const SessionsDrawer = () => {
                 AMA sessions
               </AccordionTrigger>
               <AccordionContent>
-                {!subAccountAddress ? (
+                <div className="mb-3 flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('[SessionsDrawer] Manual refresh button clicked');
+                      fetchUserAMAs();
+                    }}
+                    className="h-7 text-xs gap-1"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Force Refresh
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    {subAccountAddress ? `Sub: ${subAccountAddress.slice(0, 6)}...${subAccountAddress.slice(-4)}` : 'No address'}
+                  </p>
+                </div>
+                {!subAccountAddress && !universalAddress ? (
                   <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
                 ) : userAMAs.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No AMAs created yet</p>
