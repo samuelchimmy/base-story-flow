@@ -9,7 +9,8 @@ import { useWallet } from './WalletProvider';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
-import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
+import { AMA_CONTRACT_ABI } from '@/config';
+import { getContractAddress } from '@/networkConfig';
 
 interface CreateAMAModalProps {
   open: boolean;
@@ -17,7 +18,7 @@ interface CreateAMAModalProps {
 }
 
 export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
-  const { subAccountAddress, isConnected, sendCalls, getCallsStatus } = useWallet();
+  const { subAccountAddress, isConnected, sendCalls, getCallsStatus, currentNetwork } = useWallet();
   const [heading, setHeading] = useState('');
   const [description, setDescription] = useState('');
   const [requiresTip, setRequiresTip] = useState(false);
@@ -25,6 +26,8 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [createdAmaId, setCreatedAmaId] = useState<bigint | null>(null);
+
+  const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

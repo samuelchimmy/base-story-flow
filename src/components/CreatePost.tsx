@@ -1,12 +1,11 @@
-// src/components/CreatePost.tsx
-
 import { useState } from 'react';
-import { useWallet } from './WalletProvider'; // Your context provider
+import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
+import { CONTRACT_ABI } from '../config';
+import { getContractAddress } from '@/networkConfig';
 import { encodeFunctionData } from 'viem';
 
 interface CreatePostProps {
@@ -17,7 +16,9 @@ interface CreatePostProps {
 export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
   const [content, setContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
-  const { isConnected, sendCalls } = useWallet();
+  const { isConnected, sendCalls, currentNetwork } = useWallet();
+
+  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
 
   const handlePost = async () => {
     if (!isConnected || !content.trim()) {

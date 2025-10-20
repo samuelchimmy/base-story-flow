@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { StoryCard, type Story } from './StoryCard';
 import { Button } from './ui/button';
 import { publicClient } from '../viemClient';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '../config';
+import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
+import { getContractAddress } from '@/networkConfig';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatePost } from './CreatePost';
@@ -24,8 +25,10 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('latest');
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
-  const { subAccountAddress, universalAddress } = useWallet();
+  const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
   const navigate = useNavigate();
+
+  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {

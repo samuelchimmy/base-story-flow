@@ -316,13 +316,24 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   }, [provider]);
 
   const switchNetwork = useCallback((network: NetworkType) => {
+    console.log('[DEBUG] 🔄 Switching to network:', network);
+    
+    // Reset all connection state
     setCurrentNetwork(network);
     localStorage.setItem('basestory:network', network);
+    localStorage.removeItem('walletConnected'); // Prevent auto-reconnect
+    
     setIsConnected(false);
     setUniversalAddress(null);
     setSubAccountAddress(null);
     setBalance(null);
-    console.log('[DEBUG] 🔄 Switched to network:', network);
+    setLoading(false); // Reset loading state
+    setError(null);
+    
+    // Reset connecting flag
+    isConnecting.current = false;
+    
+    console.log('[DEBUG] ✅ Network switched to:', network);
   }, []);
 
   // Auto-connect on mount if previously connected

@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
-// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-// --- FIX #2: Import all necessary config from your updated config file ---
-import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
+import { CONTRACT_ABI, USDC_ABI } from '../config';
+import { getContractAddress } from '@/networkConfig';
 import { supabase } from '@/integrations/supabase/client';
 
 
@@ -32,10 +31,13 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [viewCount, setViewCount] = useState(story.views);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
-  const { isConnected, sendCalls } = useWallet();
+  const { isConnected, sendCalls, currentNetwork } = useWallet();
   const cardRef = useRef<HTMLElement | null>(null);
-  const VIEW_TTL_MS = 1000 * 60 * 60 * 12; // 12h unique view window
+  const VIEW_TTL_MS = 1000 * 60 * 60 * 12;
   const maxPreviewLength = 280;
+
+  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
+  const USDC_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'usdc');
 
   // Increment view count only when card becomes visible and not viewed recently
   useEffect(() => {

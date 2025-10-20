@@ -20,7 +20,8 @@ import {
 import { toast } from 'sonner';
 import { useWallet } from './WalletProvider';
 import { publicClient } from '../viemClient';
-import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '../config';
+import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
+import { getContractAddress } from '@/networkConfig';
 import { getAllAMAs } from '@/lib/amaHelpers';
 
 export const SessionsDrawer = () => {
@@ -28,8 +29,11 @@ export const SessionsDrawer = () => {
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
   const [activePanel, setActivePanel] = useState<string | null>(null);
-  const { subAccountAddress } = useWallet();
+  const { subAccountAddress, currentNetwork } = useWallet();
   const navigate = useNavigate();
+
+  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
+  const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   useEffect(() => {
     if (!subAccountAddress || !activePanel) return;
