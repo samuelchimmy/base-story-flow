@@ -105,10 +105,9 @@ export const FundingCard = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] sm:max-w-[420px] p-5 mx-4">
+      <DialogContent className="max-w-[90vw] sm:max-w-[420px] p-5 rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">Fund Your Account</DialogTitle>
-          <p className="text-xs text-muted-foreground">Send USDC for tipping stories</p>
         </DialogHeader>
 
         <div className="space-y-4">
