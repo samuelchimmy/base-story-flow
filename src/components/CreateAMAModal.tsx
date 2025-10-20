@@ -161,8 +161,12 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       const amaId = decoded.args.amaId;
       console.log('✅ AMA created with ID:', amaId.toString());
       
-      setCreatedAmaId(amaId);
       toast.success('AMA created successfully!', { id: createToast });
+      
+      // Use setTimeout to ensure state update happens after toast
+      setTimeout(() => {
+        setCreatedAmaId(amaId);
+      }, 100);
       
     } catch (error: any) {
       console.error('❌ Error creating AMA:', error);
