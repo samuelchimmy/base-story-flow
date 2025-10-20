@@ -11,6 +11,7 @@ import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
 import { AMA_CONTRACT_ABI } from '@/config';
 import { getContractAddress } from '@/networkConfig';
+import { getPublicClient } from '@/viemClient';
 
 interface CreateAMAModalProps {
   open: boolean;
@@ -49,6 +50,26 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       const headingURI = heading.trim();
       const descriptionURI = description.trim() || '';
       const tipAmountInUSDC = requiresTip ? parseUnits(tipAmount, 6) : 0n;
+
+      // Preflight simulate to catch reverts with a clear reason
+      try {
+        const client = getPublicClient(currentNetwork);
+        await client.simulateContract({
+          address: AMA_CONTRACT_ADDRESS,
+          abi: AMA_CONTRACT_ABI,
+          functionName: 'createAMA',
+          args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
+          account: subAccountAddress as any,
+        } as any);
+      } catch (simErr: any) {
+        console.error('Simulation failed for createAMA:', simErr);
+        toast.error('Transaction would revert', {
+          id: createToast,
+          description: simErr?.shortMessage || simErr?.message || 'Contract reverted',
+        });
+        setIsCreating(false);
+        return;
+      }
 
       const calldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
