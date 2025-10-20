@@ -29,14 +29,14 @@ export const SessionsDrawer = () => {
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
   const [activePanel, setActivePanel] = useState<string | null>(null);
-  const { subAccountAddress, currentNetwork } = useWallet();
+  const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
   const navigate = useNavigate();
 
   const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
   const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   useEffect(() => {
-    if (!subAccountAddress || !activePanel) return;
+    if ((!subAccountAddress && !universalAddress) || !activePanel) return;
     
     if (activePanel === 'ama-sessions') {
       fetchUserAMAs();
@@ -44,7 +44,7 @@ export const SessionsDrawer = () => {
     if (activePanel === 'story-history') {
       fetchUserStories();
     }
-  }, [subAccountAddress, activePanel, currentNetwork]);
+  }, [subAccountAddress, universalAddress, activePanel, currentNetwork]);
 
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
@@ -65,14 +65,18 @@ export const SessionsDrawer = () => {
   };
 
   const fetchUserAMAs = async () => {
-    if (!subAccountAddress) return;
+    if (!subAccountAddress && !universalAddress) return;
     try {
-      console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress);
+      console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress, 'universal:', universalAddress);
       const allAMAs = await getAllAMAs(currentNetwork);
       console.log('[SessionsDrawer] All AMAs:', allAMAs);
-      const myAMAs = allAMAs.filter(
-        (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
-      );
+      const myAMAs = allAMAs.filter((ama) => {
+        const creatorLower = ama.creator.toLowerCase();
+        return (
+          (subAccountAddress && creatorLower === subAccountAddress.toLowerCase()) ||
+          (universalAddress && creatorLower === universalAddress.toLowerCase())
+        );
+      });
       console.log('[SessionsDrawer] My AMAs:', myAMAs);
       setUserAMAs(myAMAs);
     } catch (error) {
