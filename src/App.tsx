@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { sdk } from '@farcaster/miniapp-sdk';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AMA from "./pages/AMA";
@@ -13,8 +15,14 @@ import { WalletProvider } from "@/components/WalletProvider";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  useEffect(() => {
+    // Signal ready to Farcaster/Base miniapp - no-op when running standalone
+    sdk.actions.ready();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -33,6 +41,7 @@ const App = () => (
       </WalletProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
