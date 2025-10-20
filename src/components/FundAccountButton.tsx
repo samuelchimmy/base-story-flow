@@ -1,69 +1,46 @@
 import { useState } from 'react';
-import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
-import { toast } from 'sonner';
+import { useWallet } from './WalletProvider';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { FundingCard } from './FundingCard';
+import { Wallet, Droplet } from 'lucide-react';
 
 export const FundAccountButton = () => {
   const [isLoading, setIsLoading] = useState(false);
-  // --- DEBUG STEP 1: Import subAccountAddress as well ---
-  const { universalAddress, subAccountAddress, balance, fetchBalance } = useWallet();
-
-  const currentBalance = parseFloat(balance || '0');
-  const hasSufficientBalance = currentBalance > 0.1;
+  const [fundingCardOpen, setFundingCardOpen] = useState(false);
+  const { universalAddress, balance, fetchBalance, isTestnet } = useWallet();
 
   const handleFund = async () => {
     if (!universalAddress) {
-      toast.error('No wallet connected');
+      toast.error('Please connect your wallet first');
       return;
     }
 
-    // --- DEBUG STEP 2: Add console logs to expose the state ---
-    console.log("--- Faucet Button Clicked: Debug Info ---");
-    console.log("Address being sent to backend:", universalAddress);
-    console.log("For reference, the Sub Account address is:", subAccountAddress);
-    console.log("-----------------------------------------");
-    
+    if (!isTestnet) {
+      setFundingCardOpen(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('faucet', {
-        // The code remains the same, sending the `universalAddress` variable
         body: { address: universalAddress },
       });
 
-      if (error) {
-        console.error('Supabase function invocation error:', error);
-        toast.error('Failed to fund account', {
-          description: error.message || 'Unknown error',
-        });
-        return;
-      }
-
-      if (data?.error) {
-        toast.error(data.error, {
-          description: data.message || 'Please try again later',
-        });
-        return;
-      }
+      if (error) throw error;
 
       if (data?.success) {
-        toast.success(data.message || 'USDC sent successfully!', {
-          description: data.transactionHash 
-            ? `View on explorer: ${data.transactionHash.slice(0, 10)}...` 
-            : 'Funds will arrive shortly',
-          action: data.explorerUrl ? {
-            label: 'View Transaction',
-            onClick: () => window.open(data.explorerUrl, '_blank'),
-          } : undefined,
+        toast.success('Account funded successfully!', {
+          description: data.message,
         });
-
-        fetchBalance();
+        
         setTimeout(() => {
           fetchBalance();
-        }, 3000);
+        }, 2000);
       }
     } catch (error) {
-      console.error('Faucet error:', error);
+      console.error('Failed to fund account:', error);
       toast.error('Failed to fund account', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -72,15 +49,41 @@ export const FundAccountButton = () => {
     }
   };
 
+  const buttonDisabled = isLoading || !universalAddress || (balance !== null && parseFloat(balance) > 0.1);
+  const buttonText = isLoading 
+    ? 'Funding...' 
+    : (balance !== null && parseFloat(balance) > 0.1) 
+      ? 'Sufficient Balance' 
+      : isTestnet 
+        ? 'Fund Account'
+        : 'Add Funds';
+
   return (
-    <Button
-      onClick={handleFund}
-      disabled={isLoading || hasSufficientBalance || !universalAddress}
-      size="sm"
-      variant="secondary"
-      className="text-xs md:text-sm"
-    >
-      {isLoading ? 'Funding...' : hasSufficientBalance ? 'Sufficient Balance' : 'Fund Account'}
-    </Button>
+    <>
+      <Button
+        onClick={handleFund}
+        disabled={buttonDisabled}
+        size="sm"
+        variant="outline"
+        className="text-xs md:text-sm flex items-center gap-1.5"
+      >
+        {isTestnet ? (
+          <Droplet className="w-3 h-3" />
+        ) : (
+          <Wallet className="w-3 h-3" />
+        )}
+        {buttonText}
+      </Button>
+
+      {!isTestnet && universalAddress && (
+        <FundingCard
+          open={fundingCardOpen}
+          onOpenChange={setFundingCardOpen}
+          address={universalAddress}
+          currentBalance={balance || '0.00'}
+          onSuccess={fetchBalance}
+        />
+      )}
+    </>
   );
 };

@@ -49,7 +49,7 @@ export const SessionsDrawer = () => {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      });
+      } as any);
       const myStories = (allStories as any[]).filter(
         (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );

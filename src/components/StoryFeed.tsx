@@ -40,10 +40,10 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      });
+      } as any);
       
       // Filter out any stories marked as deleted by the new contract
-      const activeStories = data.filter(story => !story.deleted);
+      const activeStories = (data as any[]).filter(story => !story.deleted);
 
       // Prepare stories array with timestamps for view count matching
       const storiesForViews = activeStories.map(story => ({
@@ -95,9 +95,9 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      });
+      } as any);
 
-      const myStories = allStories.filter(
+      const myStories = (allStories as any[]).filter(
         (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );
 

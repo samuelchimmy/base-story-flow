@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { createBaseAccountSDK } from '@base-org/account';
-import { baseSepolia } from 'viem/chains'; 
 import type { Address } from 'viem';
-
-const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
+import { DEFAULT_NETWORK, getNetworkConfig, getContractAddress, type NetworkType } from '@/networkConfig';
 
 interface SubAccount {
   address: Address;
@@ -19,8 +17,11 @@ interface WalletContextType {
   balance: string | null;
   loading: boolean;
   error: string | null;
+  currentNetwork: NetworkType;
+  isTestnet: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
+  switchNetwork: (network: NetworkType) => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
   getCallsStatus: (id: string) => Promise<any>;
   fetchBalance: () => Promise<void>;
@@ -46,6 +47,10 @@ const generateUsername = () => {
 };
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkType>(() => {
+    const saved = localStorage.getItem('basestory:network');
+    return (saved as NetworkType) || DEFAULT_NETWORK;
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [universalAddress, setUniversalAddress] = useState<Address | null>(null);
   const [subAccountAddress, setSubAccountAddress] = useState<Address | null>(null);
@@ -55,18 +60,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [provider, setProvider] = useState<any>(null);
   
-  // Use refs to track mounted state and prevent race conditions
   const isMounted = useRef(true);
   const isConnecting = useRef(false);
 
-  // Initialize Base Account SDK
+  const networkConfig = getNetworkConfig(currentNetwork);
+  const isTestnet = networkConfig.isTestnet;
+
   useEffect(() => {
     const initializeSDK = async () => {
       try {
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          appChainIds: [baseSepolia.id], 
+          appChainIds: [networkConfig.id], 
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
@@ -76,7 +82,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const providerInstance = sdkInstance.getProvider();
         if (isMounted.current) {
           setProvider(providerInstance);
-          console.log('Base Account SDK initialized successfully');
+          console.log('Base Account SDK initialized for network:', networkConfig.name);
         }
       } catch (error) {
         console.error('Failed to initialize Base Account SDK:', error);
@@ -91,7 +97,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [currentNetwork]);
 
   // Stable fetchBalance using useCallback with minimal dependencies
   const fetchBalance = useCallback(async () => {
@@ -112,6 +118,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
+      const usdcAddress = getContractAddress(currentNetwork, 'usdc');
       const balanceData = `0x70a08231000000000000000000000000${currentAddress.substring(2)}`;
       
       console.log('[DEBUG] 📞 Fetching USDC balance for:', currentAddress);
@@ -120,7 +127,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         method: 'eth_call',
         params: [
           {
-            to: USDC_CONTRACT_ADDRESS,
+            to: usdcAddress,
             data: balanceData,
           },
           'latest',
@@ -143,7 +150,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         setBalance('0.00');
       }
     }
-  }, [provider, universalAddress]);
+  }, [provider, universalAddress, currentNetwork]);
 
   const connect = useCallback(async () => {
     console.log('[DEBUG] 🔌 connect() called');
@@ -154,7 +161,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          appChainIds: [baseSepolia.id],
+          appChainIds: [networkConfig.id],
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
@@ -214,18 +221,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('walletConnected', 'true');
         console.log('[DEBUG] ✓ Connection state saved to localStorage');
         
-        // Fetch balance for the now-correct Universal Address
         console.log('[DEBUG] 💵 Calling fetchBalance() after connection...');
-        // We call fetchBalance directly here since the state update might not be immediate
-        // for the useEffect that polls.
         if (universalAcc) {
-            // Manually create a temporary fetcher to ensure we use the new address
             const fetcher = async () => {
                 try {
+                    const usdcAddress = getContractAddress(currentNetwork, 'usdc');
                     const balanceData = `0x70a08231000000000000000000000000${universalAcc.substring(2)}`;
                     const balanceHex = await provider.request({
                         method: 'eth_call',
-                        params: [{ to: USDC_CONTRACT_ADDRESS, data: balanceData }, 'latest'],
+                        params: [{ to: usdcAddress, data: balanceData }, 'latest'],
                     }) as string;
                     const balanceWei = BigInt(balanceHex);
                     const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
@@ -281,7 +285,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         params: [
           {
             version: '2.0',
-            chainId: `0x${baseSepolia.id.toString(16)}`,
+            chainId: `0x${networkConfig.id.toString(16)}`,
             from: subAccountAddress,
             calls: calls.map(call => ({
               to: call.to,
@@ -298,10 +302,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to send calls:', error);
       throw error;
     }
-  }, [provider, subAccountAddress]);
+  }, [provider, subAccountAddress, currentNetwork]);
 
-  // FIXED: Get calls status via provider (EIP-5792)
-  // Pass the id string directly, not wrapped in an object
   const getCallsStatus = useCallback(async (id: string) => {
     if (!provider) throw new Error('Wallet provider not ready');
     
@@ -309,9 +311,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     
     return await provider.request({
       method: 'wallet_getCallsStatus',
-      params: [id], // ✅ FIXED: Pass string directly, not { id }
+      params: [id],
     });
   }, [provider]);
+
+  const switchNetwork = useCallback((network: NetworkType) => {
+    setCurrentNetwork(network);
+    localStorage.setItem('basestory:network', network);
+    setIsConnected(false);
+    setUniversalAddress(null);
+    setSubAccountAddress(null);
+    setBalance(null);
+    console.log('[DEBUG] 🔄 Switched to network:', network);
+  }, []);
 
   // Auto-connect on mount if previously connected
   useEffect(() => {
@@ -356,8 +368,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         balance,
         loading,
         error,
+        currentNetwork,
+        isTestnet,
         connect,
         disconnect,
+        switchNetwork,
         sendCalls,
         getCallsStatus,
         fetchBalance,
