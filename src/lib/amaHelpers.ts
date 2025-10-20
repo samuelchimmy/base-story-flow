@@ -92,18 +92,25 @@ export async function getAMAMessages(
   amaId: bigint,
   network: NetworkType = DEFAULT_NETWORK,
   offset: bigint = 0n,
-  limit: bigint = 50n
+  limit: bigint = 50n,
+  viewer?: `0x${string}`
 ): Promise<AMAMessage[]> {
   const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
   const client = getPublicClient(network);
   
   try {
-    const data = await client.readContract({
+    const callOpts: any = {
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMAMessagesPaginated',
       args: [amaId, offset, limit],
-    } as any) as AMAMessage[];
+    };
+
+    if (viewer) {
+      callOpts.account = viewer as any; // ensure msg.sender context for private AMAs
+    }
+
+    const data = await client.readContract(callOpts) as AMAMessage[];
 
     return data;
   } catch (error) {

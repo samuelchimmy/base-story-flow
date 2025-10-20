@@ -38,7 +38,7 @@ export default function AMA() {
       await fetchAMA();
       await fetchMessages();
     })();
-  }, [id]);
+  }, [id, subAccountAddress]);
 
   const fetchAMA = async () => {
     try {
@@ -68,7 +68,8 @@ export default function AMA() {
         start = ama.messageCount > limit ? ama.messageCount - limit : 0n;
       }
 
-      const messagesData = await getAMAMessages(amaId, currentNetwork, start, limit);
+      const viewer = subAccountAddress as any;
+      const messagesData = await getAMAMessages(amaId, currentNetwork, start, limit, viewer);
       
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,
