@@ -39,7 +39,7 @@ export const NETWORKS: Record<NetworkType, NetworkConfig> = {
     shortName: 'Testnet',
     contracts: {
       baseStory: '0x8766cB332ABcAb9B7B77C8415313631072838a9C',
-      baseAMA: '0x8766cB332ABcAb9B7B77C8415313631072838a9C',
+      baseAMA: '0x588750b2670e640d4be0e46d1221f142d6c5566b',
       usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
     },
     blockExplorer: 'https://sepolia.basescan.org',
