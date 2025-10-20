@@ -281,20 +281,31 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const networkConfig = getNetworkConfig(currentNetwork);
+      
+      // Build the params object with paymaster support for mainnet
+      const params: any = {
+        version: '2.0',
+        chainId: `0x${networkConfig.id.toString(16)}`,
+        from: subAccountAddress,
+        calls: calls.map(call => ({
+          to: call.to,
+          data: call.data || '0x',
+          value: call.value || '0x0',
+        })),
+      };
+
+      // Add paymaster for mainnet (Base Mainnet)
+      if (networkConfig.id === 8453) {
+        params.capabilities = {
+          paymasterService: {
+            url: 'https://api.developer.coinbase.com/rpc/v1/base/txMfBGLwGwuohbs8rpwJH0wXDO2fX7OY',
+          },
+        };
+      }
+
       const callsId = await provider.request({
         method: 'wallet_sendCalls',
-        params: [
-          {
-            version: '2.0',
-            chainId: `0x${networkConfig.id.toString(16)}`,
-            from: subAccountAddress,
-            calls: calls.map(call => ({
-              to: call.to,
-              data: call.data || '0x',
-              value: call.value || '0x0',
-            })),
-          },
-        ],
+        params: [params],
       }) as string;
 
       console.log('Calls sent successfully:', callsId);
