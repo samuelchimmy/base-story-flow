@@ -76,15 +76,23 @@ export const SessionsDrawer = () => {
     try {
       console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress, 'universal:', universalAddress);
       const allAMAs = await getAllAMAs(currentNetwork);
-      console.log('[SessionsDrawer] All AMAs:', allAMAs);
+      console.log('[SessionsDrawer] All AMAs fetched:', allAMAs.length, 'total');
+      
+      // Log each AMA creator for debugging
+      allAMAs.forEach((ama, idx) => {
+        console.log(`[SessionsDrawer] AMA ${idx}: ID=${ama.id?.toString()}, creator=${ama.creator}`);
+      });
+      
       const myAMAs = allAMAs.filter((ama) => {
         const creatorLower = ama.creator.toLowerCase();
-        return (
-          (subAccountAddress && creatorLower === subAccountAddress.toLowerCase()) ||
-          (universalAddress && creatorLower === universalAddress.toLowerCase())
-        );
+        const matchesSub = subAccountAddress && creatorLower === subAccountAddress.toLowerCase();
+        const matchesUniversal = universalAddress && creatorLower === universalAddress.toLowerCase();
+        
+        console.log(`[SessionsDrawer] Checking AMA ${ama.id?.toString()}: creator=${creatorLower}, matchesSub=${matchesSub}, matchesUniversal=${matchesUniversal}`);
+        
+        return matchesSub || matchesUniversal;
       });
-      console.log('[SessionsDrawer] My AMAs:', myAMAs);
+      console.log('[SessionsDrawer] My AMAs found:', myAMAs.length);
       setUserAMAs(myAMAs);
     } catch (error) {
       console.error('[SessionsDrawer] Failed to fetch user AMAs:', error);
