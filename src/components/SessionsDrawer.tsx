@@ -46,6 +46,13 @@ export const SessionsDrawer = () => {
     }
   }, [subAccountAddress, universalAddress, activePanel, currentNetwork]);
 
+  // Refetch when drawer opens while panel is active
+  useEffect(() => {
+    if (open && activePanel === 'ama-sessions' && (subAccountAddress || universalAddress)) {
+      fetchUserAMAs();
+    }
+  }, [open, activePanel, subAccountAddress, universalAddress, currentNetwork]);
+
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
     try {

@@ -36,16 +36,22 @@ export async function getAllAMAs(network: NetworkType = DEFAULT_NETWORK): Promis
       functionName: 'getAllAMAs',
     } as any) as any[];
 
-    // Augment each AMA with messageCount fetched from contract
+    // Augment each AMA with messageCount fetched from contract, but don't fail the whole list on errors
     const withCounts = await Promise.all(
       data.map(async (ama) => {
-        const count = await client.readContract({
-          address: AMA_CONTRACT_ADDRESS,
-          abi: AMA_CONTRACT_ABI,
-          functionName: 'getAMAMessageCount',
-          args: [ama.id],
-        } as any) as bigint;
-        return { ...ama, messageCount: count } as AMA;
+        try {
+          const count = await client.readContract({
+            address: AMA_CONTRACT_ADDRESS,
+            abi: AMA_CONTRACT_ABI,
+            functionName: 'getAMAMessageCount',
+            args: [ama.id],
+          } as any) as bigint;
+          return { ...ama, messageCount: count } as AMA;
+        } catch (e) {
+          // Some contracts may restrict message count for private AMAs; default to 0 on error
+          console.warn('getAMAMessageCount failed for AMA', ama.id?.toString?.(), e);
+          return { ...ama, messageCount: 0n } as AMA;
+        }
       })
     );
 
