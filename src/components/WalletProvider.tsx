@@ -298,7 +298,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (networkConfig.id === 8453) {
         params.capabilities = {
           paymasterService: {
-            url: 'https://api.developer.coinbase.com/rpc/v1/base/txMfBGLwGwuohbs8rpwJH0wXDO2fX7OY',
+            url: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f',
           },
         };
       }
