@@ -44,7 +44,7 @@ export const SessionsDrawer = () => {
     if (activePanel === 'story-history') {
       fetchUserStories();
     }
-  }, [subAccountAddress, activePanel]);
+  }, [subAccountAddress, activePanel, currentNetwork]);
 
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
@@ -67,13 +67,17 @@ export const SessionsDrawer = () => {
   const fetchUserAMAs = async () => {
     if (!subAccountAddress) return;
     try {
+      console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress);
       const allAMAs = await getAllAMAs(currentNetwork);
+      console.log('[SessionsDrawer] All AMAs:', allAMAs);
       const myAMAs = allAMAs.filter(
         (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
       );
+      console.log('[SessionsDrawer] My AMAs:', myAMAs);
       setUserAMAs(myAMAs);
     } catch (error) {
-      console.error('Failed to fetch user AMAs:', error);
+      console.error('[SessionsDrawer] Failed to fetch user AMAs:', error);
+      toast.error('Failed to load AMAs');
     }
   };
 
