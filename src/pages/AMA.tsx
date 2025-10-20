@@ -25,7 +25,7 @@ interface UIAMAMessage {
 
 export default function AMA() {
   const { id } = useParams<{ id: string }>();
-  const { isConnected, subAccountAddress, sendCalls, currentNetwork } = useWallet();
+  const { isConnected, subAccountAddress, universalAddress, sendCalls, currentNetwork } = useWallet();
   const [ama, setAma] = useState<AMA | null>(null);
   const [messages, setMessages] = useState<UIAMAMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -68,9 +68,21 @@ export default function AMA() {
         start = ama.messageCount > limit ? ama.messageCount - limit : 0n;
       }
 
-      const viewer = subAccountAddress as any;
+      // Determine viewer for private AMAs: only the creator can view
+      let viewer: `0x${string}` | undefined = undefined;
+      if (ama && !ama.isPublic) {
+        const candidates = [subAccountAddress as any, universalAddress as any].filter(Boolean) as `0x${string}`[];
+        const match = candidates.find((a) => a.toLowerCase() === (ama.creator as string).toLowerCase());
+        if (!match) {
+          setMessages([]);
+          toast.info('This AMA is private — only the creator can view messages.');
+          return;
+        }
+        viewer = match;
+      }
+
       const messagesData = await getAMAMessages(amaId, currentNetwork, start, limit, viewer);
-      
+
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,
         blockchainId: msg.id,
