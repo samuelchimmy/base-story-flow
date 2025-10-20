@@ -28,9 +28,11 @@ export const SessionsDrawer = () => {
   const [open, setOpen] = useState(false);
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
-  const [activePanel, setActivePanel] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<string | null>('ama-sessions');
   const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
   const navigate = useNavigate();
+
+  console.log('[SessionsDrawer] render - initial', { subAccountAddress, universalAddress, currentNetwork });
 
   // Debug logging for state changes
   useEffect(() => {
@@ -134,12 +136,20 @@ export const SessionsDrawer = () => {
   };
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer
+      open={open}
+      onOpenChange={(v) => {
+        console.log('[SessionsDrawer] onOpenChange:', v);
+        setOpen(v);
+      }}
+    >
       <DrawerTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
           className="text-xs sm:text-sm rounded-sm px-2 sm:px-3"
+          onClick={() => console.log('[SessionsDrawer] Trigger clicked')}
+          data-testid="sessions-trigger"
         >
           Sessions
         </Button>
@@ -156,7 +166,16 @@ export const SessionsDrawer = () => {
         </DrawerHeader>
 
         <div className="overflow-y-auto px-4 pb-4">
-          <Accordion type="single" collapsible className="w-full" onValueChange={(val) => setActivePanel((val as string) || null)}>
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full"
+            defaultValue="ama-sessions"
+            onValueChange={(val) => {
+              console.log('[SessionsDrawer] Accordion onValueChange:', val);
+              setActivePanel((val as string) || null);
+            }}
+          >
             {/* AMA Sessions */}
             <AccordionItem value="ama-sessions">
               <AccordionTrigger className="text-sm font-semibold">
@@ -172,12 +191,13 @@ export const SessionsDrawer = () => {
                       fetchUserAMAs();
                     }}
                     className="h-7 text-xs gap-1"
+                    data-testid="ama-refresh-btn"
                   >
                     <RefreshCw className="h-3 w-3" />
                     Force Refresh
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    {subAccountAddress ? `Sub: ${subAccountAddress.slice(0, 6)}...${subAccountAddress.slice(-4)}` : 'No address'}
+                    {subAccountAddress ? `Sub: ${subAccountAddress.slice(0, 6)}...${subAccountAddress.slice(-4)}` : (universalAddress ? `Uni: ${universalAddress.slice(0,6)}...${universalAddress.slice(-4)}` : 'No address')}
                   </p>
                 </div>
                 {!subAccountAddress && !universalAddress ? (
