@@ -53,10 +53,27 @@ export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
       setTimeout(() => {
         refetchStories();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to post story:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        shortMessage: error?.shortMessage,
+        cause: error?.cause,
+        data: error?.data,
+        stack: error?.stack,
+      });
+      
+      let errorMessage = 'Unknown error';
+      if (error?.shortMessage) {
+        errorMessage = error.shortMessage;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.cause?.message) {
+        errorMessage = error.cause.message;
+      }
+      
       toast.error('Failed to post story', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: errorMessage,
       });
     } finally {
       setIsPosting(false);

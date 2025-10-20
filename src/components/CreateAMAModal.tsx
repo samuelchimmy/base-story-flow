@@ -164,11 +164,28 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       setCreatedAmaId(amaId);
       toast.success('AMA created successfully!', { id: createToast });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error creating AMA:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        shortMessage: error?.shortMessage,
+        cause: error?.cause,
+        data: error?.data,
+        stack: error?.stack,
+      });
+      
+      let errorMessage = 'Unknown error';
+      if (error?.shortMessage) {
+        errorMessage = error.shortMessage;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.cause?.message) {
+        errorMessage = error.cause.message;
+      }
+      
       toast.error('Failed to create AMA', { 
         id: createToast,
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: errorMessage,
       });
     } finally {
       setIsCreating(false);

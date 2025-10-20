@@ -7,7 +7,6 @@ import { monitorDeposit, type DepositResult } from '@/lib/balanceMonitor';
 import { formatUnits, formatEther } from 'viem';
 import { getPublicClient } from '@/viemClient';
 import { getContractAddress } from '@/networkConfig';
-import QRCode from 'qrcode';
 import { useWallet } from './WalletProvider';
 
 interface FundingCardProps {
@@ -30,15 +29,6 @@ export const FundingCard = ({
   const [status, setStatus] = useState<'waiting' | 'checking' | 'success'>('waiting');
   const [depositInfo, setDepositInfo] = useState<DepositResult | null>(null);
   const [countdown, setCountdown] = useState(3);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-
-  useEffect(() => {
-    if (open && address) {
-      QRCode.toDataURL(address, { width: 120, margin: 1 })
-        .then(setQrCodeUrl)
-        .catch(() => setQrCodeUrl(''));
-    }
-  }, [open, address]);
 
   useEffect(() => {
     if (!open || !address) return;
@@ -126,16 +116,16 @@ export const FundingCard = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="text-center py-2 border-b border-border">
+          <div className="text-center py-3 border-b border-border">
             <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
-            <p className="text-sm font-medium">{currentBalance} USDC</p>
+            <p className="text-base font-semibold">{currentBalance} USDC</p>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Your Deposit Address</p>
-            <div className="bg-muted rounded-lg p-3 border border-border">
-              <div className="flex items-center gap-2 mb-2">
-                <code className="text-xs font-mono flex-1 break-all">
+          <div className="space-y-3">
+            <p className="text-xs text-center text-muted-foreground">Your Deposit Address</p>
+            <div className="bg-muted rounded-lg p-4 border border-border">
+              <div className="flex items-center justify-center gap-2">
+                <code className="text-xs font-mono break-all text-center">
                   {address}
                 </code>
                 <Button
@@ -151,15 +141,6 @@ export const FundingCard = ({
                   )}
                 </Button>
               </div>
-              {qrCodeUrl && (
-                <div className="flex justify-center pt-2">
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="QR Code" 
-                    className="border border-border rounded"
-                  />
-                </div>
-              )}
             </div>
           </div>
 
@@ -197,10 +178,10 @@ export const FundingCard = ({
             )}
           </div>
 
-          <div className="space-y-1 pt-2">
-            <p className="text-xs text-muted-foreground">• Send USDC or ETH from any wallet</p>
-            <p className="text-xs text-muted-foreground">• Usually takes 10-30 seconds</p>
-            <p className="text-xs text-muted-foreground">• Minimum: 0.1 USDC or 0.0001 ETH</p>
+          <div className="space-y-1 pt-2 text-center">
+            <p className="text-xs text-muted-foreground">Send USDC or ETH from any wallet</p>
+            <p className="text-xs text-muted-foreground">Usually takes 10-30 seconds</p>
+            <p className="text-xs text-muted-foreground">Minimum: 0.1 USDC or 0.0001 ETH</p>
           </div>
 
           <Button 
