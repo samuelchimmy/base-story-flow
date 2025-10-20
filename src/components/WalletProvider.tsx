@@ -295,16 +295,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         })),
       };
 
-      // Add paymaster for Base Mainnet (8453)
-      if (networkConfig.id === 8453) {
-        const paymasterUrl = 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f';
-        // Support both capability keys for broader compatibility
+      // Add paymaster if configured via env per network
+      const paymasterEnv =
+        (networkConfig.id === 8453
+          ? import.meta.env.VITE_PAYMASTER_URL_BASE
+          : import.meta.env.VITE_PAYMASTER_URL_BASE_SEPOLIA) || import.meta.env.VITE_PAYMASTER_URL;
+
+      if (paymasterEnv && typeof paymasterEnv === 'string' && paymasterEnv.length > 0) {
         params.capabilities = {
-          paymasterUrl,
-          paymasterService: {
-            url: paymasterUrl,
-          },
+          paymasterUrl: paymasterEnv,
+          paymasterService: { url: paymasterEnv },
         };
+      } else {
+        console.warn('[WalletProvider] No paymaster URL configured. Transactions may require native gas.');
       }
 
       const callsId = await provider.request({
