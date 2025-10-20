@@ -25,7 +25,7 @@ interface UIAMAMessage {
 
 export default function AMA() {
   const { id } = useParams<{ id: string }>();
-  const { isConnected, subAccountAddress, sendCalls } = useWallet();
+  const { isConnected, subAccountAddress, sendCalls, currentNetwork } = useWallet();
   const [ama, setAma] = useState<AMA | null>(null);
   const [messages, setMessages] = useState<UIAMAMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -43,7 +43,7 @@ export default function AMA() {
   const fetchAMA = async () => {
     try {
       const amaId = BigInt(id!);
-      const amaData = await getAMA(amaId);
+      const amaData = await getAMA(amaId, currentNetwork);
       
       if (!amaData) {
         throw new Error('AMA not found');
@@ -68,7 +68,7 @@ export default function AMA() {
         start = ama.messageCount > limit ? ama.messageCount - limit : 0n;
       }
 
-      const messagesData = await getAMAMessages(amaId, start, limit);
+      const messagesData = await getAMAMessages(amaId, currentNetwork, start, limit);
       
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,

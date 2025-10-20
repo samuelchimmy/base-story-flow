@@ -1,5 +1,6 @@
-import { publicClient } from '@/viemClient';
-import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
+import { getPublicClient } from '@/viemClient';
+import { AMA_CONTRACT_ABI } from '@/config';
+import { getContractAddress, DEFAULT_NETWORK, type NetworkType } from '@/networkConfig';
 
 export interface AMA {
   id: bigint;
@@ -24,9 +25,12 @@ export interface AMAMessage {
 /**
  * Fetch all AMAs from the blockchain
  */
-export async function getAllAMAs(): Promise<AMA[]> {
+export async function getAllAMAs(network: NetworkType = DEFAULT_NETWORK): Promise<AMA[]> {
+  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
+  const client = getPublicClient(network);
+  
   try {
-    const data = await publicClient.readContract({
+    const data = await client.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAllAMAs',
@@ -35,7 +39,7 @@ export async function getAllAMAs(): Promise<AMA[]> {
     // Augment each AMA with messageCount fetched from contract
     const withCounts = await Promise.all(
       data.map(async (ama) => {
-        const count = await publicClient.readContract({
+        const count = await client.readContract({
           address: AMA_CONTRACT_ADDRESS,
           abi: AMA_CONTRACT_ABI,
           functionName: 'getAMAMessageCount',
@@ -55,16 +59,19 @@ export async function getAllAMAs(): Promise<AMA[]> {
 /**
  * Get a specific AMA by ID
  */
-export async function getAMA(amaId: bigint): Promise<AMA | null> {
+export async function getAMA(amaId: bigint, network: NetworkType = DEFAULT_NETWORK): Promise<AMA | null> {
+  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
+  const client = getPublicClient(network);
+  
   try {
-    const data = await publicClient.readContract({
+    const data = await client.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMA',
       args: [amaId],
     } as any) as any;
 
-    const count = await publicClient.readContract({
+    const count = await client.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMAMessageCount',
@@ -83,11 +90,15 @@ export async function getAMA(amaId: bigint): Promise<AMA | null> {
  */
 export async function getAMAMessages(
   amaId: bigint,
+  network: NetworkType = DEFAULT_NETWORK,
   offset: bigint = 0n,
   limit: bigint = 50n
 ): Promise<AMAMessage[]> {
+  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
+  const client = getPublicClient(network);
+  
   try {
-    const data = await publicClient.readContract({
+    const data = await client.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMAMessagesPaginated',

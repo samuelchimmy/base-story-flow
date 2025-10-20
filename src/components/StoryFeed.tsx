@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StoryCard, type Story } from './StoryCard';
 import { Button } from './ui/button';
-import { publicClient } from '../viemClient';
+import { getPublicClient } from '../viemClient';
 import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
 import { getContractAddress } from '@/networkConfig';
 import { toast } from 'sonner';
@@ -39,7 +39,8 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     }
     
     try {
-      const data = await publicClient.readContract({
+      const client = getPublicClient(currentNetwork);
+      const data = await client.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
@@ -94,7 +95,8 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     if (!subAccountAddress) return;
 
     try {
-      const allStories = await publicClient.readContract({
+      const client = getPublicClient(currentNetwork);
+      const allStories = await client.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',

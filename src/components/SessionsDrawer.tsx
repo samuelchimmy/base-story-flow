@@ -19,7 +19,7 @@ import {
 } from './ui/accordion';
 import { toast } from 'sonner';
 import { useWallet } from './WalletProvider';
-import { publicClient } from '../viemClient';
+import { getPublicClient } from '../viemClient';
 import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
 import { getContractAddress } from '@/networkConfig';
 import { getAllAMAs } from '@/lib/amaHelpers';
@@ -49,7 +49,8 @@ export const SessionsDrawer = () => {
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
     try {
-      const allStories = await publicClient.readContract({
+      const client = getPublicClient(currentNetwork);
+      const allStories = await client.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
@@ -66,7 +67,7 @@ export const SessionsDrawer = () => {
   const fetchUserAMAs = async () => {
     if (!subAccountAddress) return;
     try {
-      const allAMAs = await getAllAMAs();
+      const allAMAs = await getAllAMAs(currentNetwork);
       const myAMAs = allAMAs.filter(
         (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
       );

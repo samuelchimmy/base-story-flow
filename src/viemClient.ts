@@ -1,15 +1,16 @@
 import { createPublicClient, http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
+import type { NetworkType } from './networkConfig';
+import { NETWORKS } from './networkConfig';
 
-export const publicClient = createPublicClient({
-  chain: base,
-  transport: http(),
-}) as any;
-
-export const getPublicClient = (chainId: number) => {
-  const chain = chainId === 8453 ? base : baseSepolia;
+// Function to get a public client for a specific network
+export const getPublicClient = (network: NetworkType = 'base') => {
+  const config = NETWORKS[network];
   return createPublicClient({
-    chain,
-    transport: http(),
+    chain: config.chain,
+    transport: http(config.rpcUrl),
   }) as any;
 };
+
+// Default client for backwards compatibility (Base Mainnet)
+export const publicClient = getPublicClient('base');

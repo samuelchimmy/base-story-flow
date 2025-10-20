@@ -5,9 +5,10 @@ import { Copy, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { monitorDeposit, type DepositResult } from '@/lib/balanceMonitor';
 import { formatUnits, formatEther } from 'viem';
-import { publicClient } from '@/viemClient';
+import { getPublicClient } from '@/viemClient';
 import { getContractAddress } from '@/networkConfig';
 import QRCode from 'qrcode';
+import { useWallet } from './WalletProvider';
 
 interface FundingCardProps {
   open: boolean;
@@ -24,6 +25,7 @@ export const FundingCard = ({
   currentBalance,
   onSuccess 
 }: FundingCardProps) => {
+  const { currentNetwork } = useWallet();
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<'waiting' | 'checking' | 'success'>('waiting');
   const [depositInfo, setDepositInfo] = useState<DepositResult | null>(null);
@@ -49,10 +51,11 @@ export const FundingCard = ({
 
     const startMonitoring = async () => {
       try {
-        const usdcAddress = getContractAddress('base', 'usdc');
+        const client = getPublicClient(currentNetwork);
+        const usdcAddress = getContractAddress(currentNetwork, 'usdc');
         
         const [usdcBalance, ethBalance] = await Promise.all([
-          publicClient.readContract({
+          client.readContract({
             address: usdcAddress,
             abi: [{
               constant: true,
@@ -64,7 +67,7 @@ export const FundingCard = ({
             functionName: 'balanceOf',
             args: [address as `0x${string}`],
           } as any),
-          publicClient.getBalance({ address: address as `0x${string}` }),
+          client.getBalance({ address: address as `0x${string}` }),
         ]);
 
         const initialBalances = {
@@ -83,7 +86,7 @@ export const FundingCard = ({
           (error) => {
             console.error('Monitoring error:', error);
           },
-          publicClient,
+          client,
           usdcAddress
         );
       } catch (error) {
