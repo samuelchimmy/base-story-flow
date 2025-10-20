@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { isAddressEqual } from 'viem';
 import { useNavigate } from 'react-router-dom';
 import {
   Drawer,
@@ -114,20 +113,12 @@ export const SessionsDrawer = () => {
       });
       
       const myAMAs = allAMAs.filter((ama) => {
-        const rawCreator = (ama as any).creator as string;
-        let matchesSub = false;
-        let matchesUniversal = false;
-        try {
-          if (subAccountAddress) {
-            matchesSub = isAddressEqual(rawCreator as `0x${string}`, subAccountAddress as `0x${string}`);
-          }
-          if (universalAddress) {
-            matchesUniversal = isAddressEqual(rawCreator as `0x${string}`, universalAddress as `0x${string}`);
-          }
-        } catch (e) {
-          console.warn('[SessionsDrawer] Address compare failed:', { rawCreator, subAccountAddress, universalAddress }, e);
-        }
-        console.log(`[SessionsDrawer] Checking AMA ${ama.id?.toString?.()}: creator=${rawCreator}, matchesSub=${matchesSub}, matchesUniversal=${matchesUniversal}`);
+        const creatorLower = ama.creator.toLowerCase();
+        const matchesSub = subAccountAddress && creatorLower === subAccountAddress.toLowerCase();
+        const matchesUniversal = universalAddress && creatorLower === universalAddress.toLowerCase();
+        
+        console.log(`[SessionsDrawer] Checking AMA ${ama.id?.toString()}: creator=${creatorLower}, matchesSub=${matchesSub}, matchesUniversal=${matchesUniversal}`);
+        
         return matchesSub || matchesUniversal;
       });
       console.log('[SessionsDrawer] My AMAs found:', myAMAs.length);
