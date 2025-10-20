@@ -10,9 +10,9 @@
   "miniapp": {
     "version": "1",
     "name": "BaseStory",
-    "homeUrl": "https://your-production-domain.com",
-    "iconUrl": "https://your-production-domain.com/icon.png",
-    "splashImageUrl": "https://your-production-domain.com/splash.png",
+    "homeUrl": "https://basestory.app",
+    "iconUrl": "https://basestory.app/icon.png",
+    "splashImageUrl": "https://basestory.app/splash.png",
     "splashBackgroundColor": "#ffffff",
     "webhookUrl": "",
     "subtitle": "Stories. Alphas. Anonymous.",
