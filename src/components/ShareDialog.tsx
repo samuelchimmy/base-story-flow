@@ -29,7 +29,7 @@ export const ShareDialog = ({ open, onOpenChange, title, text, url }: ShareDialo
       icon: <img src={baseIcon} alt="Base" className="w-6 h-6 rounded" />,
       action: () => {
         window.open(
-          `https://base.org/share?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+          `https://base.app/share?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
           '_blank'
         );
       },
