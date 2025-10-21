@@ -1,0 +1,34 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "baseBuilder": {
+    "allowedAddresses": ["0x05a4650ba796a297240b133A76Fb47F8b6cf6184"]
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "BaseStory",
+    "homeUrl": "https://basestory.app",
+    "iconUrl": "https://basestory.app/icon.png",
+    "splashImageUrl": "https://basestory.app/splash.png",
+    "splashBackgroundColor": "#0052FF",
+    "webhookUrl": "",
+    "subtitle": "Stories. Alphas. Anonymous.",
+    "description": "Share stories and alphas anonymously on Base blockchain with seamless, gasless transactions. No wallet pop-ups, just pure storytelling.",
+    "screenshotUrls": [
+      "https://basestory.app/Screenshot1.png",
+      "https://basestory.app/Screenshot2.png",
+      "https://basestory.app/Screenshot3.png"
+    ],
+    "primaryCategory": "social",
+    "tags": ["story", "anonymous", "social", "base", "web3", "alphas"],
+    "heroImageUrl": "https://basestory.app/Screenshot1.png",
+    "tagline": "Share anonymously on Base",
+    "ogTitle": "BaseStory - Anonymous Stories on Base",
+    "ogDescription": "Share stories and alphas anonymously with seamless Base Account integration",
+    "ogImageUrl": "https://basestory.app/Screenshot1.png",
+    "noindex": false
+  }
+}
