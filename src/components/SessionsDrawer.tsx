@@ -79,6 +79,17 @@ export const SessionsDrawer = () => {
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
     try {
+      // FIX: Add caching to reduce RPC calls
+      const cacheKey = `stories_${subAccountAddress}_${currentNetwork}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
+      
+      if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 30000) {
+        console.log('[SessionsDrawer] Using cached stories');
+        setUserStories(JSON.parse(cached));
+        return;
+      }
+      
       const client = getPublicClient(currentNetwork);
       const allStories = await client.readContract({
         address: CONTRACT_ADDRESS,
@@ -89,6 +100,10 @@ export const SessionsDrawer = () => {
         (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );
       setUserStories(myStories);
+      
+      // Cache the results
+      sessionStorage.setItem(cacheKey, JSON.stringify(myStories));
+      sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
     } catch (error) {
       console.error('Failed to fetch user stories:', error);
     }
@@ -101,6 +116,17 @@ export const SessionsDrawer = () => {
       return;
     }
     try {
+      // FIX: Add caching to reduce RPC calls
+      const cacheKey = `amas_${subAccountAddress || universalAddress}_${currentNetwork}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
+      
+      if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 30000) {
+        console.log('[SessionsDrawer] Using cached AMAs');
+        setUserAMAs(JSON.parse(cached));
+        return;
+      }
+      
       console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress, 'universal:', universalAddress);
       const allAMAs = await getAllAMAs(currentNetwork);
       console.log('[SessionsDrawer] All AMAs fetched:', allAMAs.length, 'total');
@@ -121,6 +147,10 @@ export const SessionsDrawer = () => {
       });
       console.log('[SessionsDrawer] My AMAs found:', myAMAs.length);
       setUserAMAs(myAMAs);
+      
+      // Cache the results
+      sessionStorage.setItem(cacheKey, JSON.stringify(myAMAs));
+      sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
     } catch (error) {
       console.error('[SessionsDrawer] Failed to fetch user AMAs:', error);
       toast.error('Failed to load AMAs');

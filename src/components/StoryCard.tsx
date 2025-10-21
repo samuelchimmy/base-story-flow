@@ -175,35 +175,32 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
       const tipAmount = parseUnits('0.1', 6);
 
-      // --- Step 1: Approve our smart contract to spend the user's USDC ---
-      toast.loading('Please approve the USDC spending limit...', { id: tipToast });
+      // FIX: Batch both approval and tip into a single transaction for better UX
+      toast.loading('Processing tip transaction...', { id: tipToast });
       
       const approveCalldata = encodeFunctionData({
-        abi: USDC_ABI, // Use the USDC ABI
+        abi: USDC_ABI,
         functionName: 'approve',
-        args: [CONTRACT_ADDRESS, tipAmount], // Arg1: Spender (our contract), Arg2: Amount
+        args: [CONTRACT_ADDRESS, tipAmount],
       });
 
-      // Send the approval transaction TO the USDC contract
-      await sendCalls([{
-        to: USDC_CONTRACT_ADDRESS,
-        data: approveCalldata,
-      }]);
-      
-      toast.success('Approval successful! Now sending your tip...', { id: tipToast });
-
-      // --- Step 2: Call our smart contract to execute the tip ---
       const tipCalldata = encodeFunctionData({
-        abi: CONTRACT_ABI, // Use our BaseStory ABI
-        functionName: 'tipStory', // The new function in our contract
+        abi: CONTRACT_ABI,
+        functionName: 'tipStory',
         args: [BigInt(story.id)],
       });
 
-      // Send the tipping transaction TO our BaseStory contract
-      await sendCalls([{
-        to: CONTRACT_ADDRESS,
-        data: tipCalldata,
-      }]);
+      // Send both calls in a single atomic transaction
+      await sendCalls([
+        {
+          to: USDC_CONTRACT_ADDRESS,
+          data: approveCalldata,
+        },
+        {
+          to: CONTRACT_ADDRESS,
+          data: tipCalldata,
+        }
+      ]);
       
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
       await refetchStories();

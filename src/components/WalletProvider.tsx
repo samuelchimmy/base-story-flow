@@ -136,6 +136,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('[DEBUG] 📥 Raw hex balance:', balanceHex);
       
+      // FIX: Handle empty or invalid balance responses (0x or 0x0)
+      if (!balanceHex || balanceHex === '0x' || balanceHex === '0x0') {
+        console.log('[DEBUG] ⚠️ Empty balance response, defaulting to 0');
+        if (isMounted.current) {
+          setBalance('0.00');
+        }
+        return;
+      }
+      
       const balanceWei = BigInt(balanceHex);
       const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
       
@@ -231,12 +240,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         method: 'eth_call',
                         params: [{ to: usdcAddress, data: balanceData }, 'latest'],
                     }) as string;
+                    
+                    // FIX: Handle empty or invalid balance responses
+                    if (!balanceHex || balanceHex === '0x' || balanceHex === '0x0') {
+                        console.log('[DEBUG] ⚠️ Empty initial balance response, defaulting to 0');
+                        setBalance('0.00');
+                        return;
+                    }
+                    
                     const balanceWei = BigInt(balanceHex);
                     const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
                     setBalance(formattedBalance);
                     console.log('[DEBUG] ✅ Initial balance fetched successfully:', formattedBalance);
                 } catch (e) {
                     console.error('Initial fetchBalance failed:', e);
+                    setBalance('0.00');
                 }
             };
             fetcher();
@@ -364,7 +382,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [provider, connect]);
 
-  // Poll balance every 10 seconds when connected
+  // Poll balance every 30 seconds when connected (FIX: Reduced from 10s to avoid rate limiting)
   useEffect(() => {
     console.log('[DEBUG] 🔄 Balance polling useEffect triggered');
     console.log('[DEBUG] isConnected:', isConnected, 'universalAddress:', universalAddress);
@@ -380,7 +398,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const intervalId = setInterval(() => {
       console.log('[DEBUG] ⏰ Polling interval triggered');
       fetchBalance();
-    }, 10000);
+    }, 30000); // FIX: Increased from 10s to 30s to reduce RPC rate limiting
 
     return () => {
       console.log('[DEBUG] 🛑 Cleaning up balance polling');
