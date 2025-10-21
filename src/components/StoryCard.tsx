@@ -19,7 +19,8 @@ export interface Story {
   loves: number;
   views: number;
   loved: boolean;
-  deleted?: boolean; // Add the optional deleted flag from the new contract
+  deleted?: boolean;
+  createdAt?: number; // blockchain timestamp for sharing
 }
 
 interface StoryCardProps {
@@ -113,21 +114,19 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   };
 
   const handleShare = () => {
-    const url = window.location.href + `?story=${story.id}`;
-    const text = `Check out this story on BaseStory: ${story.content.slice(0, 100)}...`;
+    const createdAtParam = story.createdAt || Math.floor(story.timestamp.getTime() / 1000);
+    const shareUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/share-story/${story.id}?contract=${CONTRACT_ADDRESS}&createdAt=${createdAtParam}`;
+    const shareText = `Check out this anonymous story on BaseStory! 📖`;
     
-    const shareOptions = [
-      {
-        name: 'Twitter',
-        url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-      },
-      {
-        name: 'Farcaster',
-        url: `https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}`,
-      },
+    // Create share options
+    const options = [
+      { name: 'Farcaster', url: `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}` },
+      { name: 'Twitter', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
+      { name: 'Base', url: `https://base.org/share?url=${encodeURIComponent(shareUrl)}` },
     ];
-
-    window.open(shareOptions[0].url, '_blank');
+    
+    // Default to Farcaster (most common for Base apps)
+    window.open(options[0].url, '_blank');
   };
 
   const handleLove = async () => {

@@ -7,7 +7,7 @@ import { useWallet } from '@/components/WalletProvider';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData } from 'viem';
 import { USDC_CONTRACT_ADDRESS, USDC_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAMA, getAMAMessages, type AMA, type AMAMessage as BlockchainAMAMessage } from '@/lib/amaHelpers';
 
@@ -92,6 +92,15 @@ export default function AMA() {
       }
       setMessages([]);
     }
+  };
+
+  const handleShare = () => {
+    const shareUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/share-ama/${id}`;
+    const shareText = `Join this AMA on BaseStory! 💬`;
+    
+    // Share to Farcaster
+    const farcasterUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
+    window.open(farcasterUrl, '_blank');
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -210,7 +219,12 @@ export default function AMA() {
 
         {/* AMA Header */}
         <div className="bg-card border border-border rounded-2xl p-6 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">{ama.headingURI}</h1>
+          <div className="flex items-start justify-between mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold flex-1">{ama.headingURI}</h1>
+            <Button variant="ghost" size="sm" onClick={handleShare} className="ml-2">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
           {ama.descriptionURI && (
             <p className="text-muted-foreground mb-4">{ama.descriptionURI}</p>
           )}
