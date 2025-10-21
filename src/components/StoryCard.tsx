@@ -2,12 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
-// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-// --- FIX #2: Import all necessary config from your updated config file ---
 import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
 import { supabase } from '@/integrations/supabase/client';
+import { ShareDialog } from './ShareDialog';
 
 
 export interface Story {
@@ -33,6 +32,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [viewCount, setViewCount] = useState(story.views);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const { isConnected, sendCalls } = useWallet();
   const cardRef = useRef<HTMLElement | null>(null);
   const VIEW_TTL_MS = 1000 * 60 * 60 * 12; // 12h unique view window
@@ -114,19 +114,21 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   };
 
   const handleShare = () => {
+    setShareDialogOpen(true);
+  };
+
+  const getShareContent = () => {
     const createdAtParam = story.createdAt || Math.floor(story.timestamp.getTime() / 1000);
-    const shareUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/share-story/${story.id}?contract=${CONTRACT_ADDRESS}&createdAt=${createdAtParam}`;
-    const shareText = `Check out this anonymous story on BaseStory! 📖`;
+    const url = `https://basestory.app/?story=${story.id}&contract=${CONTRACT_ADDRESS}&createdAt=${createdAtParam}`;
     
-    // Create share options
-    const options = [
-      { name: 'Farcaster', url: `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}` },
-      { name: 'Twitter', url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}` },
-      { name: 'Base', url: `https://base.org/share?url=${encodeURIComponent(shareUrl)}` },
-    ];
+    // Truncate story content for share text
+    const truncatedContent = story.content.length > 100 
+      ? story.content.slice(0, 100) + '...' 
+      : story.content;
     
-    // Default to Farcaster (most common for Base apps)
-    window.open(options[0].url, '_blank');
+    const text = `"${truncatedContent}"\n\nRead this anonymous story on BaseStory 📖\n`;
+    
+    return { url, text };
   };
 
   const handleLove = async () => {
@@ -294,6 +296,13 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
           <span className="text-xs sm:text-sm">{viewCount}</span>
         </div>
       </div>
+
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        title="Share Story"
+        {...getShareContent()}
+      />
     </article>
   );
 };

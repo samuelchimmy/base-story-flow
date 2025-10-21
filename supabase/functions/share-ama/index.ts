@@ -18,14 +18,14 @@ serve(async (req) => {
     console.log(`Generating share page for AMA ${amaId}`);
 
     const appUrl = 'https://basestory.app';
-    const imageUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/og-image-ama/${amaId}`;
+    const imageUrl = `${appUrl}/splash.png`;
     const redirectUrl = `${appUrl}/ama/${amaId}`;
 
     const miniappMetadata = {
       version: "1",
       imageUrl: imageUrl,
       button: {
-        title: "View AMA",
+        title: "Send Message",
         action: {
           type: "launch_miniapp",
           name: "BaseStory",
@@ -40,7 +40,7 @@ serve(async (req) => {
       version: "1",
       imageUrl: imageUrl,
       button: {
-        title: "View AMA",
+        title: "Send Message",
         action: {
           type: "launch_frame",
           name: "BaseStory",

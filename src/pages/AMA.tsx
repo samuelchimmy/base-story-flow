@@ -10,6 +10,7 @@ import { USDC_CONTRACT_ADDRESS, USDC_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI
 import { ArrowLeft, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAMA, getAMAMessages, type AMA, type AMAMessage as BlockchainAMAMessage } from '@/lib/amaHelpers';
+import { ShareDialog } from '@/components/ShareDialog';
 
 // UI-friendly AMA message type
 interface UIAMAMessage {
@@ -31,6 +32,7 @@ export default function AMA() {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -95,12 +97,26 @@ export default function AMA() {
   };
 
   const handleShare = () => {
-    const shareUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/share-ama/${id}`;
-    const shareText = `Join this AMA on BaseStory! 💬`;
+    setShareDialogOpen(true);
+  };
+
+  const getShareContent = () => {
+    const url = `https://basestory.app/ama/${id}`;
     
-    // Share to Farcaster
-    const farcasterUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
-    window.open(farcasterUrl, '_blank');
+    let text = `Join this AMA on BaseStory! 💬\n`;
+    
+    if (ama) {
+      const truncatedDesc = ama.descriptionURI && ama.descriptionURI.length > 100
+        ? ama.descriptionURI.slice(0, 100) + '...'
+        : ama.descriptionURI || '';
+      
+      const heading = ama.headingURI || 'AMA Session';
+      const tipInfo = ama.requiresTip ? `\nTip: ${Number(ama.tipAmount) / 1e6} USDC per message` : '';
+      
+      text = `"${heading}"\n${truncatedDesc ? truncatedDesc + '\n' : ''}\nJoin this AMA on BaseStory! 💬${tipInfo}\n`;
+    }
+    
+    return { url, text };
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -267,6 +283,13 @@ export default function AMA() {
           )}
         </div>
       </div>
+
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        title="Share AMA"
+        {...getShareContent()}
+      />
     </div>
   );
 }

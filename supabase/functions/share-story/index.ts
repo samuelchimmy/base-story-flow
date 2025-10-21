@@ -21,14 +21,14 @@ serve(async (req) => {
     console.log(`Generating share page for story ${storyId}`);
 
     const appUrl = 'https://basestory.app';
-    const imageUrl = `https://ewqoryvormjvzumqaarf.supabase.co/functions/v1/og-image-story/${storyId}?contract=${contractAddress}&createdAt=${createdAt}`;
+    const imageUrl = `${appUrl}/splash.png`;
     const redirectUrl = `${appUrl}/?story=${storyId}&contract=${contractAddress}&createdAt=${createdAt}`;
 
     const miniappMetadata = {
       version: "1",
       imageUrl: imageUrl,
       button: {
-        title: "View Story",
+        title: "Tip 0.1 USDC",
         action: {
           type: "launch_miniapp",
           name: "BaseStory",
@@ -43,7 +43,7 @@ serve(async (req) => {
       version: "1",
       imageUrl: imageUrl,
       button: {
-        title: "View Story",
+        title: "Tip 0.1 USDC",
         action: {
           type: "launch_frame",
           name: "BaseStory",
