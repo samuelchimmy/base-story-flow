@@ -1,6 +1,5 @@
-import { getPublicClient } from '@/viemClient';
-import { AMA_CONTRACT_ABI } from '@/config';
-import { getContractAddress, DEFAULT_NETWORK, type NetworkType } from '@/networkConfig';
+import { publicClient } from '@/viemClient';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 
 export interface AMA {
   id: bigint;
@@ -25,33 +24,24 @@ export interface AMAMessage {
 /**
  * Fetch all AMAs from the blockchain
  */
-export async function getAllAMAs(network: NetworkType = DEFAULT_NETWORK): Promise<AMA[]> {
-  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
-  const client = getPublicClient(network);
-  
+export async function getAllAMAs(): Promise<AMA[]> {
   try {
-    const data = await client.readContract({
+    const data = await publicClient.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAllAMAs',
-    } as any) as any[];
+    }) as any[];
 
-    // Augment each AMA with messageCount fetched from contract, but don't fail the whole list on errors
+    // Augment each AMA with messageCount fetched from contract
     const withCounts = await Promise.all(
       data.map(async (ama) => {
-        try {
-          const count = await client.readContract({
-            address: AMA_CONTRACT_ADDRESS,
-            abi: AMA_CONTRACT_ABI,
-            functionName: 'getAMAMessageCount',
-            args: [ama.id],
-          } as any) as bigint;
-          return { ...ama, messageCount: count } as AMA;
-        } catch (e) {
-          // Some contracts may restrict message count for private AMAs; default to 0 on error
-          console.warn('getAMAMessageCount failed for AMA', ama.id?.toString?.(), e);
-          return { ...ama, messageCount: 0n } as AMA;
-        }
+        const count = await publicClient.readContract({
+          address: AMA_CONTRACT_ADDRESS,
+          abi: AMA_CONTRACT_ABI,
+          functionName: 'getAMAMessageCount',
+          args: [ama.id],
+        }) as bigint;
+        return { ...ama, messageCount: count } as AMA;
       })
     );
 
@@ -65,24 +55,21 @@ export async function getAllAMAs(network: NetworkType = DEFAULT_NETWORK): Promis
 /**
  * Get a specific AMA by ID
  */
-export async function getAMA(amaId: bigint, network: NetworkType = DEFAULT_NETWORK): Promise<AMA | null> {
-  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
-  const client = getPublicClient(network);
-  
+export async function getAMA(amaId: bigint): Promise<AMA | null> {
   try {
-    const data = await client.readContract({
+    const data = await publicClient.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMA',
       args: [amaId],
-    } as any) as any;
+    }) as any;
 
-    const count = await client.readContract({
+    const count = await publicClient.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMAMessageCount',
       args: [amaId],
-    } as any) as bigint;
+    }) as bigint;
 
     return { ...data, messageCount: count } as AMA;
   } catch (error) {
@@ -96,27 +83,16 @@ export async function getAMA(amaId: bigint, network: NetworkType = DEFAULT_NETWO
  */
 export async function getAMAMessages(
   amaId: bigint,
-  network: NetworkType = DEFAULT_NETWORK,
   offset: bigint = 0n,
-  limit: bigint = 50n,
-  viewer?: `0x${string}`
+  limit: bigint = 50n
 ): Promise<AMAMessage[]> {
-  const AMA_CONTRACT_ADDRESS = getContractAddress(network, 'baseAMA');
-  const client = getPublicClient(network);
-  
   try {
-    const callOpts: any = {
+    const data = await publicClient.readContract({
       address: AMA_CONTRACT_ADDRESS,
       abi: AMA_CONTRACT_ABI,
       functionName: 'getAMAMessagesPaginated',
       args: [amaId, offset, limit],
-    };
-
-    if (viewer) {
-      callOpts.account = viewer as any; // ensure msg.sender context for private AMAs
-    }
-
-    const data = await client.readContract(callOpts) as AMAMessage[];
+    }) as AMAMessage[];
 
     return data;
   } catch (error) {

@@ -10,7 +10,7 @@ import {
   DrawerTrigger,
 } from './ui/drawer';
 import { Button } from './ui/button';
-import { X, Share2, RefreshCw } from 'lucide-react';
+import { X, Share2 } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -19,9 +19,8 @@ import {
 } from './ui/accordion';
 import { toast } from 'sonner';
 import { useWallet } from './WalletProvider';
-import { getPublicClient } from '../viemClient';
-import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
-import { getContractAddress } from '@/networkConfig';
+import { publicClient } from '../viemClient';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '../config';
 import { getAllAMAs } from '@/lib/amaHelpers';
 
 export const SessionsDrawer = () => {
@@ -29,131 +28,47 @@ export const SessionsDrawer = () => {
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
   const [activePanel, setActivePanel] = useState<string | null>(null);
-  const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
+  const { subAccountAddress } = useWallet();
   const navigate = useNavigate();
 
-  // Debug logging for state changes
   useEffect(() => {
-    console.log('[SessionsDrawer] State change:', {
-      open,
-      activePanel,
-      subAccountAddress,
-      universalAddress,
-      currentNetwork,
-    });
-  }, [open, activePanel, subAccountAddress, universalAddress, currentNetwork]);
-
-  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
-  const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
-
-  useEffect(() => {
-    console.log('[SessionsDrawer] useEffect triggered:', {
-      hasSubAccount: !!subAccountAddress,
-      hasUniversal: !!universalAddress,
-      activePanel,
-      willFetch: (!!subAccountAddress || !!universalAddress) && !!activePanel,
-    });
-    
-    if ((!subAccountAddress && !universalAddress) || !activePanel) {
-      console.log('[SessionsDrawer] Skipping fetch - missing addresses or no active panel');
-      return;
-    }
+    if (!subAccountAddress || !activePanel) return;
     
     if (activePanel === 'ama-sessions') {
-      console.log('[SessionsDrawer] Triggering fetchUserAMAs from main useEffect');
       fetchUserAMAs();
     }
     if (activePanel === 'story-history') {
-      console.log('[SessionsDrawer] Triggering fetchUserStories');
       fetchUserStories();
     }
-  }, [subAccountAddress, universalAddress, activePanel, currentNetwork]);
-
-  // Refetch when drawer opens while panel is active
-  useEffect(() => {
-    if (open && activePanel === 'ama-sessions' && (subAccountAddress || universalAddress)) {
-      fetchUserAMAs();
-    }
-  }, [open, activePanel, subAccountAddress, universalAddress, currentNetwork]);
+  }, [subAccountAddress, activePanel]);
 
   const fetchUserStories = async () => {
     if (!subAccountAddress) return;
     try {
-      // FIX: Add caching to reduce RPC calls
-      const cacheKey = `stories_${subAccountAddress}_${currentNetwork}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
-      
-      if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 30000) {
-        console.log('[SessionsDrawer] Using cached stories');
-        setUserStories(JSON.parse(cached));
-        return;
-      }
-      
-      const client = getPublicClient(currentNetwork);
-      const allStories = await client.readContract({
+      const allStories = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      } as any);
+      });
       const myStories = (allStories as any[]).filter(
         (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );
       setUserStories(myStories);
-      
-      // Cache the results
-      sessionStorage.setItem(cacheKey, JSON.stringify(myStories));
-      sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
     } catch (error) {
       console.error('Failed to fetch user stories:', error);
     }
   };
 
   const fetchUserAMAs = async () => {
-    console.log('[SessionsDrawer] fetchUserAMAs called');
-    if (!subAccountAddress && !universalAddress) {
-      console.log('[SessionsDrawer] No addresses available, aborting fetch');
-      return;
-    }
+    if (!subAccountAddress) return;
     try {
-      // FIX: Add caching to reduce RPC calls
-      const cacheKey = `amas_${subAccountAddress || universalAddress}_${currentNetwork}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
-      
-      if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 30000) {
-        console.log('[SessionsDrawer] Using cached AMAs');
-        setUserAMAs(JSON.parse(cached));
-        return;
-      }
-      
-      console.log('[SessionsDrawer] Fetching AMAs for network:', currentNetwork, 'subAccount:', subAccountAddress, 'universal:', universalAddress);
-      const allAMAs = await getAllAMAs(currentNetwork);
-      console.log('[SessionsDrawer] All AMAs fetched:', allAMAs.length, 'total');
-      
-      // Log each AMA creator for debugging
-      allAMAs.forEach((ama, idx) => {
-        console.log(`[SessionsDrawer] AMA ${idx}: ID=${ama.id?.toString()}, creator=${ama.creator}`);
-      });
-      
-      const myAMAs = allAMAs.filter((ama) => {
-        const creatorLower = ama.creator.toLowerCase();
-        const matchesSub = subAccountAddress && creatorLower === subAccountAddress.toLowerCase();
-        const matchesUniversal = universalAddress && creatorLower === universalAddress.toLowerCase();
-        
-        console.log(`[SessionsDrawer] Checking AMA ${ama.id?.toString()}: creator=${creatorLower}, matchesSub=${matchesSub}, matchesUniversal=${matchesUniversal}`);
-        
-        return matchesSub || matchesUniversal;
-      });
-      console.log('[SessionsDrawer] My AMAs found:', myAMAs.length);
+      const allAMAs = await getAllAMAs();
+      const myAMAs = allAMAs.filter(
+        (ama) => ama.creator.toLowerCase() === subAccountAddress.toLowerCase()
+      );
       setUserAMAs(myAMAs);
-      
-      // Cache the results
-      sessionStorage.setItem(cacheKey, JSON.stringify(myAMAs));
-      sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
     } catch (error) {
-      console.error('[SessionsDrawer] Failed to fetch user AMAs:', error);
-      toast.error('Failed to load AMAs');
+      console.error('Failed to fetch user AMAs:', error);
     }
   };
 
@@ -193,24 +108,7 @@ export const SessionsDrawer = () => {
                 AMA sessions
               </AccordionTrigger>
               <AccordionContent>
-                <div className="mb-3 flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.log('[SessionsDrawer] Manual refresh button clicked');
-                      fetchUserAMAs();
-                    }}
-                    className="h-7 text-xs gap-1"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    Force Refresh
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    {subAccountAddress ? `Sub: ${subAccountAddress.slice(0, 6)}...${subAccountAddress.slice(-4)}` : 'No address'}
-                  </p>
-                </div>
-                {!subAccountAddress && !universalAddress ? (
+                {!subAccountAddress ? (
                   <p className="text-xs text-muted-foreground">Connect wallet to view your AMAs</p>
                 ) : userAMAs.length === 0 ? (
                   <p className="text-xs text-muted-foreground">No AMAs created yet</p>

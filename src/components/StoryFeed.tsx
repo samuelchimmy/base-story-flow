@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { StoryCard, type Story } from './StoryCard';
 import { Button } from './ui/button';
-import { getPublicClient } from '../viemClient';
-import { CONTRACT_ABI, AMA_CONTRACT_ABI } from '../config';
-import { getContractAddress } from '@/networkConfig';
+import { publicClient } from '../viemClient';
+import { CONTRACT_ADDRESS, CONTRACT_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '../config';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatePost } from './CreatePost';
@@ -25,10 +24,8 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('latest');
   const [userStories, setUserStories] = useState<any[]>([]);
   const [userAMAs, setUserAMAs] = useState<any[]>([]);
-  const { subAccountAddress, universalAddress, currentNetwork } = useWallet();
+  const { subAccountAddress, universalAddress } = useWallet();
   const navigate = useNavigate();
-
-  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {
@@ -39,15 +36,14 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     }
     
     try {
-      const client = getPublicClient(currentNetwork);
-      const data = await client.readContract({
+      const data = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      } as any);
+      });
       
       // Filter out any stories marked as deleted by the new contract
-      const activeStories = (data as any[]).filter(story => !story.deleted);
+      const activeStories = data.filter(story => !story.deleted);
 
       // Prepare stories array with timestamps for view count matching
       const storiesForViews = activeStories.map(story => ({
@@ -95,14 +91,13 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
     if (!subAccountAddress) return;
 
     try {
-      const client = getPublicClient(currentNetwork);
-      const allStories = await client.readContract({
+      const allStories = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'getAllStories',
-      } as any);
+      });
 
-      const myStories = (allStories as any[]).filter(
+      const myStories = allStories.filter(
         (story: any) => story.author.toLowerCase() === subAccountAddress.toLowerCase() && !story.deleted
       );
 

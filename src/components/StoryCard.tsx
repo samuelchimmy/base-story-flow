@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
+// --- FIX #1: Import `parseUnits` instead of `parseEther` ---
 import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
-import { CONTRACT_ABI, USDC_ABI } from '../config';
-import { getContractAddress } from '@/networkConfig';
+// --- FIX #2: Import all necessary config from your updated config file ---
+import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
 import { supabase } from '@/integrations/supabase/client';
 
 
@@ -31,13 +32,10 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [viewCount, setViewCount] = useState(story.views);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
-  const { isConnected, sendCalls, currentNetwork } = useWallet();
+  const { isConnected, sendCalls } = useWallet();
   const cardRef = useRef<HTMLElement | null>(null);
-  const VIEW_TTL_MS = 1000 * 60 * 60 * 12;
+  const VIEW_TTL_MS = 1000 * 60 * 60 * 12; // 12h unique view window
   const maxPreviewLength = 280;
-
-  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
-  const USDC_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'usdc');
 
   // Increment view count only when card becomes visible and not viewed recently
   useEffect(() => {
@@ -175,32 +173,35 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
       const tipAmount = parseUnits('0.1', 6);
 
-      // FIX: Batch both approval and tip into a single transaction for better UX
-      toast.loading('Processing tip transaction...', { id: tipToast });
+      // --- Step 1: Approve our smart contract to spend the user's USDC ---
+      toast.loading('Please approve the USDC spending limit...', { id: tipToast });
       
       const approveCalldata = encodeFunctionData({
-        abi: USDC_ABI,
+        abi: USDC_ABI, // Use the USDC ABI
         functionName: 'approve',
-        args: [CONTRACT_ADDRESS, tipAmount],
+        args: [CONTRACT_ADDRESS, tipAmount], // Arg1: Spender (our contract), Arg2: Amount
       });
 
+      // Send the approval transaction TO the USDC contract
+      await sendCalls([{
+        to: USDC_CONTRACT_ADDRESS,
+        data: approveCalldata,
+      }]);
+      
+      toast.success('Approval successful! Now sending your tip...', { id: tipToast });
+
+      // --- Step 2: Call our smart contract to execute the tip ---
       const tipCalldata = encodeFunctionData({
-        abi: CONTRACT_ABI,
-        functionName: 'tipStory',
+        abi: CONTRACT_ABI, // Use our BaseStory ABI
+        functionName: 'tipStory', // The new function in our contract
         args: [BigInt(story.id)],
       });
 
-      // Send both calls in a single atomic transaction
-      await sendCalls([
-        {
-          to: USDC_CONTRACT_ADDRESS,
-          data: approveCalldata,
-        },
-        {
-          to: CONTRACT_ADDRESS,
-          data: tipCalldata,
-        }
-      ]);
+      // Send the tipping transaction TO our BaseStory contract
+      await sendCalls([{
+        to: CONTRACT_ADDRESS,
+        data: tipCalldata,
+      }]);
       
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
       await refetchStories();

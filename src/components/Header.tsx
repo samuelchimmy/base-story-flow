@@ -1,7 +1,6 @@
 import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
 import { FundAccountButton } from './FundAccountButton';
-import { NetworkSwitcher } from './NetworkSwitcher';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -35,7 +34,6 @@ export const Header = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <NetworkSwitcher />
           {isConnected ? (
             <div className="flex items-center gap-2">
               <div className="flex flex-col items-end mr-2">

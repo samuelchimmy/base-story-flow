@@ -9,9 +9,7 @@ import { useWallet } from './WalletProvider';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
-import { AMA_CONTRACT_ABI } from '@/config';
-import { getContractAddress } from '@/networkConfig';
-import { getPublicClient } from '@/viemClient';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 
 interface CreateAMAModalProps {
   open: boolean;
@@ -19,7 +17,7 @@ interface CreateAMAModalProps {
 }
 
 export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
-  const { subAccountAddress, isConnected, sendCalls, getCallsStatus, currentNetwork } = useWallet();
+  const { subAccountAddress, isConnected, sendCalls, getCallsStatus } = useWallet();
   const [heading, setHeading] = useState('');
   const [description, setDescription] = useState('');
   const [requiresTip, setRequiresTip] = useState(false);
@@ -27,8 +25,6 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [createdAmaId, setCreatedAmaId] = useState<bigint | null>(null);
-
-  const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,26 +46,6 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       const headingURI = heading.trim();
       const descriptionURI = description.trim() || '';
       const tipAmountInUSDC = requiresTip ? parseUnits(tipAmount, 6) : 0n;
-
-      // Preflight simulate to catch reverts with a clear reason
-      try {
-        const client = getPublicClient(currentNetwork);
-        await client.simulateContract({
-          address: AMA_CONTRACT_ADDRESS,
-          abi: AMA_CONTRACT_ABI,
-          functionName: 'createAMA',
-          args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
-          account: subAccountAddress as any,
-        } as any);
-      } catch (simErr: any) {
-        console.error('Simulation failed for createAMA:', simErr);
-        toast.error('Transaction would revert', {
-          id: createToast,
-          description: simErr?.shortMessage || simErr?.message || 'Contract reverted',
-        });
-        setIsCreating(false);
-        return;
-      }
 
       const calldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
@@ -161,35 +137,14 @@ export const CreateAMAModal = ({ open, onOpenChange }: CreateAMAModalProps) => {
       const amaId = decoded.args.amaId;
       console.log('✅ AMA created with ID:', amaId.toString());
       
+      setCreatedAmaId(amaId);
       toast.success('AMA created successfully!', { id: createToast });
       
-      // Use setTimeout to ensure state update happens after toast
-      setTimeout(() => {
-        setCreatedAmaId(amaId);
-      }, 100);
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Error creating AMA:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        shortMessage: error?.shortMessage,
-        cause: error?.cause,
-        data: error?.data,
-        stack: error?.stack,
-      });
-      
-      let errorMessage = 'Unknown error';
-      if (error?.shortMessage) {
-        errorMessage = error.shortMessage;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.cause?.message) {
-        errorMessage = error.cause.message;
-      }
-      
       toast.error('Failed to create AMA', { 
         id: createToast,
-        description: errorMessage,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setIsCreating(false);

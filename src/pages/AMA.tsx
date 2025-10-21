@@ -6,8 +6,7 @@ import { AMAMessageCard } from '@/components/AMAMessageCard';
 import { useWallet } from '@/components/WalletProvider';
 import { toast } from 'sonner';
 import { parseUnits, encodeFunctionData } from 'viem';
-import { USDC_ABI, AMA_CONTRACT_ABI } from '@/config';
-import { getContractAddress } from '@/networkConfig';
+import { USDC_CONTRACT_ADDRESS, USDC_ABI, AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAMA, getAMAMessages, type AMA, type AMAMessage as BlockchainAMAMessage } from '@/lib/amaHelpers';
@@ -26,7 +25,7 @@ interface UIAMAMessage {
 
 export default function AMA() {
   const { id } = useParams<{ id: string }>();
-  const { isConnected, subAccountAddress, sendCalls, currentNetwork } = useWallet();
+  const { isConnected, subAccountAddress, sendCalls } = useWallet();
   const [ama, setAma] = useState<AMA | null>(null);
   const [messages, setMessages] = useState<UIAMAMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -39,12 +38,12 @@ export default function AMA() {
       await fetchAMA();
       await fetchMessages();
     })();
-  }, [id, subAccountAddress]);
+  }, [id]);
 
   const fetchAMA = async () => {
     try {
       const amaId = BigInt(id!);
-      const amaData = await getAMA(amaId, currentNetwork);
+      const amaData = await getAMA(amaId);
       
       if (!amaData) {
         throw new Error('AMA not found');
@@ -69,8 +68,7 @@ export default function AMA() {
         start = ama.messageCount > limit ? ama.messageCount - limit : 0n;
       }
 
-      const viewer = subAccountAddress as any;
-      const messagesData = await getAMAMessages(amaId, currentNetwork, start, limit, viewer);
+      const messagesData = await getAMAMessages(amaId, start, limit);
       
       const uiMessages: UIAMAMessage[] = messagesData.map((msg, index) => ({
         id: index,
@@ -111,9 +109,6 @@ export default function AMA() {
 
     if (!ama) return;
 
-    const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
-    const USDC_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'usdc');
-
     setIsSending(true);
     const sendToast = toast.loading('Sending message...');
 
@@ -121,41 +116,47 @@ export default function AMA() {
       const amaId = BigInt(id!);
       const messageContent = newMessage.trim();
 
-      // If tip is required, approve USDC first in a separate transaction
-      if (ama.requiresTip) {
-        const tipAmountInUSDC = ama.tipAmount;
-
-        toast.loading('Approving USDC...', { id: sendToast });
-
-        // Send approval transaction first
-        const approveCalldata = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
-        });
-
-        await sendCalls([{
-          to: USDC_CONTRACT_ADDRESS,
-          data: approveCalldata,
-        }]);
-
-        // Small delay to ensure approval is committed
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-
-      toast.loading('Posting message to blockchain...', { id: sendToast });
-
-      // Now send the message posting call
+      // Encode the postMessageToAMA function call
       const postMessageCalldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
         functionName: 'postMessageToAMA',
         args: [amaId, messageContent],
       });
 
-      await sendCalls([{
+      // Build all calls in one atomic batch
+      const calls = [];
+
+      // If tip is required, approve and transfer USDC to the AMA contract
+      if (ama.requiresTip) {
+        const tipAmountInUSDC = ama.tipAmount;
+
+        toast.loading('Preparing tip and message...', { id: sendToast });
+
+        // Step 1: Approve USDC transfer to AMA contract (not creator)
+        const approveCalldata = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
+        });
+
+        calls.push({
+          to: USDC_CONTRACT_ADDRESS,
+          data: approveCalldata,
+        });
+
+        // Note: Contract will handle transferFrom internally using the allowance
+      }
+
+      toast.loading('Posting message to blockchain...', { id: sendToast });
+
+      // Add the message posting call
+      calls.push({
         to: AMA_CONTRACT_ADDRESS,
         data: postMessageCalldata,
-      }]);
+      });
+
+      // Send all calls atomically
+      await sendCalls(calls);
 
       toast.success('Message sent successfully!', { id: sendToast });
       setNewMessage('');
@@ -164,15 +165,9 @@ export default function AMA() {
       setTimeout(() => fetchMessages(), 2000);
     } catch (error) {
       console.error('Error sending message:', error);
-      const errMsg =
-        (typeof error === 'string' && error) ||
-        (error as any)?.shortMessage ||
-        (error as any)?.message ||
-        (error as any)?.value?.message ||
-        'An unknown error occurred';
       toast.error('Failed to send message', {
         id: sendToast,
-        description: errMsg,
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
       });
     } finally {
       setIsSending(false);

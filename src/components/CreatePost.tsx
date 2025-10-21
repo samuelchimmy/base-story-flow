@@ -1,11 +1,12 @@
+// src/components/CreatePost.tsx
+
 import { useState } from 'react';
-import { useWallet } from './WalletProvider';
+import { useWallet } from './WalletProvider'; // Your context provider
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-import { CONTRACT_ABI } from '../config';
-import { getContractAddress } from '@/networkConfig';
+import { CONTRACT_ADDRESS, CONTRACT_ABI } from '../config';
 import { encodeFunctionData } from 'viem';
 
 interface CreatePostProps {
@@ -16,9 +17,7 @@ interface CreatePostProps {
 export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
   const [content, setContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
-  const { isConnected, sendCalls, currentNetwork } = useWallet();
-
-  const CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseStory');
+  const { isConnected, sendCalls } = useWallet();
 
   const handlePost = async () => {
     if (!isConnected || !content.trim()) {
@@ -53,27 +52,10 @@ export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
       setTimeout(() => {
         refetchStories();
       }, 2000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to post story:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        shortMessage: error?.shortMessage,
-        cause: error?.cause,
-        data: error?.data,
-        stack: error?.stack,
-      });
-      
-      let errorMessage = 'Unknown error';
-      if (error?.shortMessage) {
-        errorMessage = error.shortMessage;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      } else if (error?.cause?.message) {
-        errorMessage = error.cause.message;
-      }
-      
       toast.error('Failed to post story', {
-        description: errorMessage,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setIsPosting(false);

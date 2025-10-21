@@ -8,12 +8,10 @@ import { useWallet } from './WalletProvider';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { parseUnits, encodeFunctionData, decodeEventLog } from 'viem';
-import { AMA_CONTRACT_ABI } from '@/config';
-import { getContractAddress } from '@/networkConfig';
-import { getPublicClient } from '@/viemClient';
+import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI } from '@/config';
 
 export const CreateAMAInline = () => {
-  const { subAccountAddress, isConnected, sendCalls, getCallsStatus, currentNetwork } = useWallet();
+  const { subAccountAddress, isConnected, sendCalls, getCallsStatus } = useWallet();
   const [heading, setHeading] = useState('');
   const [description, setDescription] = useState('');
   const [requiresTip, setRequiresTip] = useState(false);
@@ -21,8 +19,6 @@ export const CreateAMAInline = () => {
   const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [createdAmaId, setCreatedAmaId] = useState<bigint | null>(null);
-
-  const AMA_CONTRACT_ADDRESS = getContractAddress(currentNetwork, 'baseAMA');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,26 +40,6 @@ export const CreateAMAInline = () => {
       const headingURI = heading.trim();
       const descriptionURI = description.trim() || '';
       const tipAmountInUSDC = requiresTip ? parseUnits(tipAmount, 6) : 0n;
-
-      // Preflight simulate to catch reverts with a clear reason
-      try {
-        const client = getPublicClient(currentNetwork);
-        await client.simulateContract({
-          address: AMA_CONTRACT_ADDRESS,
-          abi: AMA_CONTRACT_ABI,
-          functionName: 'createAMA',
-          args: [headingURI, descriptionURI, requiresTip, tipAmountInUSDC, isPublic],
-          account: subAccountAddress as any,
-        } as any);
-      } catch (simErr: any) {
-        console.error('Simulation failed for createAMA:', simErr);
-        toast.error('Transaction would revert', {
-          id: createToast,
-          description: simErr?.shortMessage || simErr?.message || 'Contract reverted',
-        });
-        setIsCreating(false);
-        return;
-      }
 
       const calldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
