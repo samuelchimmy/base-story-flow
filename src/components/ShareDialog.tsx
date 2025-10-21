@@ -56,7 +56,7 @@ export const ShareDialog = ({ open, onOpenChange, title, text, url }: ShareDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md border-0 sm:border rounded-2xl mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-5 h-5" />
