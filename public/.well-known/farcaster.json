@@ -12,22 +12,22 @@
     "name": "BaseStory",
     "homeUrl": "https://basestory.app",
     "iconUrl": "https://basestory.app/icon.png",
-    "splashImageUrl": "https://basestory.app/splash.svg",
+    "splashImageUrl": "https://basestory.app/splash.png",
     "splashBackgroundColor": "#FFFFFF",
     "subtitle": "Stories. Alphas. Anonymous.",
     "description": "Share stories and alphas anonymously on Base blockchain with seamless, gasless transactions. No wallet pop-ups, just pure storytelling.",
     "screenshotUrls": [
-      "https://basestory.app/Screenshot1.svg",
+      "https://basestory.app/Screenshot1.png",
       "https://basestory.app/Screenshot2.png",
       "https://basestory.app/Screenshot3.png"
     ],
     "primaryCategory": "social",
     "tags": ["story", "anonymous", "social", "base", "web3"],
-    "heroImageUrl": "https://basestory.app/Screenshot1.svg",
+    "heroImageUrl": "https://basestory.app/Screenshot1.png",
     "tagline": "Share anonymously on Base",
     "ogTitle": "BaseStory - Anonymous Stories",
     "ogDescription": "Share stories and alphas anonymously with seamless Base Account integration",
-    "ogImageUrl": "https://basestory.app/Screenshot1.svg",
+    "ogImageUrl": "https://basestory.app/Screenshot1.png",
     "noindex": false
   }
 }
