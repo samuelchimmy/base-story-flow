@@ -95,7 +95,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Stable fetchBalance using useCallback with minimal dependencies
+  // Stable fetchBalance using useCallback - always fetches latest balance
   const fetchBalance = useCallback(async () => {
     console.log('[DEBUG] 🔍 fetchBalance called');
     
@@ -136,14 +136,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('[DEBUG] 💰 Formatted balance:', formattedBalance, 'USDC');
       
-      if (isMounted.current) {
-        setBalance(formattedBalance);
-      }
+      // Always update state with the fresh balance
+      setBalance(formattedBalance);
     } catch (error) {
       console.error('❌ Failed to fetch USDC balance:', error);
-      if (isMounted.current) {
-        setBalance('0.00');
-      }
+      setBalance('0.00');
     }
   }, [provider, universalAddress]);
 
