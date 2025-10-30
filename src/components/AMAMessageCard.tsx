@@ -4,8 +4,9 @@ import { Button } from './ui/button';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { useWallet } from './WalletProvider';
-import { encodeFunctionData } from 'viem';
+import { encodeFunctionData, type Address } from 'viem';
 import { AMA_CONTRACT_ADDRESS, AMA_CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '@/config';
+import { checkUSDCPrereqs, formatUsdc, decodeRevert } from '@/lib/tip';
 
 interface AMAMessage {
   id: number;
@@ -24,7 +25,7 @@ interface AMAMessageCardProps {
 }
 
 export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
-  const { isConnected, sendCalls } = useWallet();
+  const { isConnected, sendCalls, universalAddress, subAccountAddress, provider } = useWallet();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoved, setIsLoved] = useState(false);
   const [localLoveCount, setLocalLoveCount] = useState(message.love_count);
@@ -96,17 +97,31 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       return;
     }
 
+    const owner = (universalAddress || subAccountAddress) as Address | null;
+    if (!owner || !provider) {
+      toast.error('Wallet not ready');
+      return;
+    }
+
     const tipToast = toast.loading('Preparing tip...');
     try {
       const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
 
+      // If AMA requires a tip, ensure balance/allowance; otherwise only send the tip call
       if (typeof tipAmount === 'bigint' && tipAmount > 0n) {
-        const approveData = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [AMA_CONTRACT_ADDRESS, tipAmount],
-        });
-        calls.push({ to: USDC_CONTRACT_ADDRESS, data: approveData });
+        const { hasBalance, hasAllowance, balance } = await checkUSDCPrereqs(provider, owner, AMA_CONTRACT_ADDRESS, tipAmount);
+        if (!hasBalance) {
+          toast.error(`You need ${formatUsdc(tipAmount)} USDC. You have ${formatUsdc(balance)}.`, { id: tipToast });
+          return;
+        }
+        if (!hasAllowance) {
+          const approveData = encodeFunctionData({
+            abi: USDC_ABI,
+            functionName: 'approve',
+            args: [AMA_CONTRACT_ADDRESS, tipAmount],
+          });
+          calls.push({ to: USDC_CONTRACT_ADDRESS, data: approveData });
+        }
       }
 
       const tipData = encodeFunctionData({
@@ -116,11 +131,11 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       });
       calls.push({ to: AMA_CONTRACT_ADDRESS, data: tipData });
 
-      await sendCalls(calls);
+      await sendCalls(calls as any);
       toast.success('Tip sent successfully!', { id: tipToast });
     } catch (error) {
       console.error('Error tipping message:', error);
-      toast.error('Failed to tip message', { id: tipToast });
+      toast.error(decodeRevert(error), { id: tipToast });
     }
   };
 

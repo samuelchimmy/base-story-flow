@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart, Send, Share2, Eye } from 'lucide-react';
 import { Button } from './ui/button';
 import { useWallet } from './WalletProvider';
-import { parseUnits, type Address, encodeFunctionData } from 'viem'; 
+import { type Address, encodeFunctionData } from 'viem'; 
 import { toast } from 'sonner';
 import { CONTRACT_ADDRESS, CONTRACT_ABI, USDC_CONTRACT_ADDRESS, USDC_ABI } from '../config';
 import { supabase } from '@/integrations/supabase/client';
 import { ShareDialog } from './ShareDialog';
+import { getStoryTipAmount, checkUSDCPrereqs, formatUsdc, decodeRevert } from '@/lib/tip';
 
 
 export interface Story {
@@ -33,7 +34,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
   const [viewCount, setViewCount] = useState(story.views);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const { isConnected, sendCalls } = useWallet();
+  const { isConnected, sendCalls, universalAddress, subAccountAddress, provider } = useWallet();
   const cardRef = useRef<HTMLElement | null>(null);
   const VIEW_TTL_MS = 1000 * 60 * 60 * 12; // 12h unique view window
   const maxPreviewLength = 280;
@@ -160,52 +161,59 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
-  // --- FIX #3: Complete rewrite of the handleTip function for USDC ---
+  // Tip with preflight checks to avoid AA simulation reverts
   const handleTip = async () => {
     if (!isConnected || isProcessing) {
       if (!isConnected) toast.error('Please connect your wallet first');
       return;
     }
-    
+
+    const owner = (universalAddress || subAccountAddress) as Address | null;
+    if (!owner || !provider) {
+      toast.error('Wallet not ready');
+      return;
+    }
+
     setIsProcessing(true);
     const tipToast = toast.loading('Preparing your tip...');
-    
-    try {
-      // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
-      const tipAmount = parseUnits('0.1', 6);
 
-      // Prepare both calls upfront so we can batch them atomically with one sponsored user operation
-      const approveCalldata = encodeFunctionData({
-        abi: USDC_ABI,
-        functionName: 'approve',
-        args: [CONTRACT_ADDRESS, tipAmount],
-      });
+    try {
+      // 1) Read tip amount from contract (fallback to 0.1 USDC)
+      const tipAmount = await getStoryTipAmount(provider);
+
+      // 2) Balance/allowance preflight
+      const { hasBalance, hasAllowance, balance } = await checkUSDCPrereqs(provider, owner, CONTRACT_ADDRESS as Address, tipAmount);
+      if (!hasBalance) {
+        toast.error(`You need ${formatUsdc(tipAmount)} USDC. You have ${formatUsdc(balance)}.`, { id: tipToast });
+        return;
+      }
+
+      // 3) Build calls (conditional approve)
+      const calls: { to: Address; data: `0x${string}` }[] = [];
+      if (!hasAllowance) {
+        const approveCalldata = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [CONTRACT_ADDRESS, tipAmount],
+        });
+        calls.push({ to: USDC_CONTRACT_ADDRESS as Address, data: approveCalldata });
+      }
 
       const tipCalldata = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'tipStory',
         args: [BigInt(story.id)],
       });
+      calls.push({ to: CONTRACT_ADDRESS as Address, data: tipCalldata });
 
-      // Single sponsored user operation with two calls (approve -> tip)
-      toast.loading('Requesting approval and sending tip...', { id: tipToast });
-      await sendCalls([
-        { to: USDC_CONTRACT_ADDRESS, data: approveCalldata },
-        { to: CONTRACT_ADDRESS, data: tipCalldata },
-      ]);
+      toast.loading('Sending tip...', { id: tipToast });
+      await sendCalls(calls);
 
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
       await refetchStories();
-
     } catch (error) {
       console.error('Failed to send tip:', error);
-      const message = typeof error === 'object' && error && 'message' in (error as any)
-        ? String((error as any).message)
-        : JSON.stringify(error);
-      toast.error('Failed to send tip.', {
-        id: tipToast,
-        description: message,
-      });
+      toast.error(decodeRevert(error), { id: tipToast });
     } finally {
       setIsProcessing(false);
     }
