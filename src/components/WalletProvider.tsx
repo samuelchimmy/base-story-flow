@@ -4,6 +4,7 @@ import { base } from 'viem/chains';
 import type { Address } from 'viem';
 
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
+const PAYMASTER_URL = import.meta.env.VITE_CDP_PAYMASTER_URL as string | undefined;
 
 interface SubAccount {
   address: Address;
@@ -70,7 +71,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
-          }
+          },
+          paymasterUrls: PAYMASTER_URL ? { [base.id]: PAYMASTER_URL } : undefined,
         });
 
         const providerInstance = sdkInstance.getProvider();
@@ -158,7 +160,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
-          }
+          },
+          paymasterUrls: PAYMASTER_URL ? { [base.id]: PAYMASTER_URL } : undefined,
         });
         const providerInstance = sdkInstance.getProvider();
         setProvider(providerInstance);
@@ -289,6 +292,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
               data: call.data || '0x',
               value: call.value || '0x0',
             })),
+            capabilities: PAYMASTER_URL ? { paymasterUrl: PAYMASTER_URL } : undefined,
           },
         ],
       }) as string;
