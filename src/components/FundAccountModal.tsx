@@ -22,15 +22,16 @@ export const FundAccountModal = ({
   const [depositDetected, setDepositDetected] = useState(false);
   const [depositAmount, setDepositAmount] = useState('0');
   const [countdown, setCountdown] = useState(5);
-  const [initialBalance, setInitialBalance] = useState('0');
+  const [initialBalance, setInitialBalance] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && initialBalance === null) {
+      // Only set initial balance once when modal first opens
       setInitialBalance(currentBalance);
       setDepositDetected(false);
       setCountdown(5);
     }
-  }, [isOpen, currentBalance]);
+  }, [isOpen, currentBalance, initialBalance]);
 
   // Poll for balance changes
   useEffect(() => {
@@ -45,15 +46,18 @@ export const FundAccountModal = ({
 
   // Check for deposit
   useEffect(() => {
-    if (!isOpen || depositDetected) return;
+    if (!isOpen || depositDetected || initialBalance === null) return;
 
     const currentBalanceNum = parseFloat(currentBalance);
     const initialBalanceNum = parseFloat(initialBalance);
     
-    if (currentBalanceNum > initialBalanceNum && currentBalanceNum - initialBalanceNum >= 0.1) {
+    // Only trigger success if there's a meaningful increase (at least 0.1 USDC)
+    if (currentBalanceNum > initialBalanceNum) {
       const deposited = currentBalanceNum - initialBalanceNum;
-      setDepositAmount(deposited.toFixed(2));
-      setDepositDetected(true);
+      if (deposited >= 0.1) {
+        setDepositAmount(deposited.toFixed(2));
+        setDepositDetected(true);
+      }
     }
   }, [currentBalance, initialBalance, isOpen, depositDetected]);
 
@@ -65,6 +69,9 @@ export const FundAccountModal = ({
       setCountdown((prev) => {
         if (prev <= 1) {
           onClose();
+          // Reset state when closing
+          setInitialBalance(null);
+          setDepositDetected(false);
           return 5;
         }
         return prev - 1;
