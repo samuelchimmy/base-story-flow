@@ -284,10 +284,24 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const fromSub = subAccountAddress as Address | null;
     const fromUniversal = (universalAddress || subAccountAddress) as Address;
 
+    // Resolve chainId dynamically; default to Base mainnet if unavailable
+    let chainIdHex = '0x2105';
+    try {
+      const cid = (await provider.request({
+        method: 'eth_chainId',
+        params: [],
+      })) as string;
+      if (typeof cid === 'string' && cid.startsWith('0x')) {
+        chainIdHex = cid;
+      }
+    } catch (err) {
+      console.warn('[sendCalls] ⚠️ eth_chainId failed, defaulting to 0x2105 (Base mainnet)', err);
+    }
+
     const buildParams = (from: Address, usePaymaster: boolean) => ({
-      version: '2.0' as const,
+      version: '2.0.0' as const,
       atomicRequired: true,
-      chainId: '0x2105', // Base mainnet (8453 in hex)
+      chainId: chainIdHex,
       from,
       calls: calls.map((call) => ({
         to: call.to,
