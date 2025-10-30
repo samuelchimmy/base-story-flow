@@ -295,9 +295,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
               value: call.value || '0x0',
             })),
             capabilities: {
-              paymasterService: {
-                url: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
-              }
+              paymasterUrl: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
             }
           },
         ],
