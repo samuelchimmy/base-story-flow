@@ -70,9 +70,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
-          },
-          paymasterUrls: {
-            [base.id]: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
           }
         });
 
@@ -161,9 +158,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
-          },
-          paymasterUrls: {
-            [base.id]: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
           }
         });
         const providerInstance = sdkInstance.getProvider();
@@ -287,6 +281,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         params: [
           {
             version: '2.0',
+            atomicRequired: true,
             chainId: '0x2105', // Base mainnet (8453 in hex)
             from: subAccountAddress,
             calls: calls.map(call => ({
@@ -294,9 +289,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
               data: call.data || '0x',
               value: call.value || '0x0',
             })),
-            capabilities: {
-              paymasterUrl: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
-            }
           },
         ],
       }) as string;

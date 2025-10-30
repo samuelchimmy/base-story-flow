@@ -209,9 +209,12 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
 
     } catch (error) {
       console.error('Failed to send tip:', error);
+      const message = typeof error === 'object' && error && 'message' in (error as any)
+        ? String((error as any).message)
+        : JSON.stringify(error);
       toast.error('Failed to send tip.', {
         id: tipToast,
-        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        description: message,
       });
     } finally {
       setIsProcessing(false);
