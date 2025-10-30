@@ -274,36 +274,84 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const sendCalls = useCallback(async (
     calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>
   ): Promise<string> => {
-    if (!provider || !subAccountAddress) {
-      throw new Error('Wallet not connected or Sub Account not available');
+    if (!provider) {
+      throw new Error('Wallet provider not ready');
+    }
+    if (!subAccountAddress && !universalAddress) {
+      throw new Error('Wallet not connected');
     }
 
-    try {
-      const callsId = await provider.request({
+    const fromSub = subAccountAddress as Address | null;
+    const fromUniversal = (universalAddress || subAccountAddress) as Address;
+
+    const buildParams = (from: Address, usePaymaster: boolean) => ({
+      version: '2.0' as const,
+      atomicRequired: true,
+      chainId: '0x2105', // Base mainnet (8453 in hex)
+      from,
+      calls: calls.map((call) => ({
+        to: call.to,
+        data: call.data || '0x',
+        value: call.value || '0x0',
+      })),
+      capabilities: usePaymaster && PAYMASTER_URL ? { paymasterUrl: PAYMASTER_URL } : undefined,
+    });
+
+    const tryWalletSendCalls = async (from: Address, usePaymaster: boolean) => {
+      return (await provider.request({
         method: 'wallet_sendCalls',
-        params: [
-          {
-            version: '2.0',
-            atomicRequired: true,
-            chainId: '0x2105', // Base mainnet (8453 in hex)
-            from: subAccountAddress,
-            calls: calls.map(call => ({
+        params: [buildParams(from, usePaymaster)],
+      })) as string;
+    };
+
+    let lastError: unknown = null;
+
+    // 1) Try sub account with paymaster (best UX, no pop-ups)
+    if (fromSub && PAYMASTER_URL) {
+      try {
+        const id = await tryWalletSendCalls(fromSub, true);
+        console.log('[sendCalls] ✅ Sub + Paymaster succeeded');
+        return id;
+      } catch (e) {
+        console.warn('[sendCalls] ❌ Sub + Paymaster failed, falling back...', e);
+        lastError = e;
+      }
+    }
+
+    // 2) Try universal account without paymaster (uses user ETH, may pop-up)
+    try {
+      const id = await tryWalletSendCalls(fromUniversal, false);
+      console.log('[sendCalls] ✅ Universal (no paymaster) succeeded');
+      return id;
+    } catch (e) {
+      console.warn('[sendCalls] ❌ Universal wallet_sendCalls failed, final fallback to eth_sendTransaction...', e);
+      lastError = e;
+    }
+
+    // 3) Final fallback: sequential eth_sendTransaction from universal
+    try {
+      let lastTx = '';
+      for (const call of calls) {
+        const tx = (await provider.request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: fromUniversal,
               to: call.to,
               data: call.data || '0x',
               value: call.value || '0x0',
-            })),
-            capabilities: PAYMASTER_URL ? { paymasterUrl: PAYMASTER_URL } : undefined,
-          },
-        ],
-      }) as string;
-
-      console.log('Calls sent successfully:', callsId);
-      return callsId;
-    } catch (error) {
-      console.error('Failed to send calls:', error);
-      throw error;
+            },
+          ],
+        })) as string;
+        lastTx = tx;
+      }
+      console.log('[sendCalls] ✅ Fallback eth_sendTransaction path succeeded');
+      return lastTx;
+    } catch (e) {
+      console.error('[sendCalls] ❌ All send paths failed');
+      throw lastError ?? e;
     }
-  }, [provider, subAccountAddress]);
+  }, [provider, subAccountAddress, universalAddress]);
 
   // FIXED: Get calls status via provider (EIP-5792)
   // Pass the id string directly, not wrapped in an object
