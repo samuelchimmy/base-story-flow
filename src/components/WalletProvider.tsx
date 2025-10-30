@@ -296,15 +296,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     if (!provider) {
       throw new Error('Wallet provider not ready');
     }
-    if (!subAccountAddress && !universalAddress) {
+    if (!subAccountAddress) {
       throw new Error('Wallet not connected');
     }
 
-    const fromSub = subAccountAddress as Address | null;
-    const fromUniversal = (universalAddress || subAccountAddress) as Address;
+    console.log('[sendCalls] 🚀 Starting transaction from Sub Account:', subAccountAddress);
+    console.log('[sendCalls] 📝 Calls:', calls);
 
-    // Resolve chainId dynamically; default to Base mainnet if unavailable
-    let chainIdHex = '0x2105';
+    // Resolve chainId dynamically
+    let chainIdHex = '0x2105'; // Base mainnet default
     try {
       const cid = (await provider.request({
         method: 'eth_chainId',
@@ -313,83 +313,58 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (typeof cid === 'string' && cid.startsWith('0x')) {
         chainIdHex = cid;
       }
+      console.log('[sendCalls] 🔗 Chain ID:', chainIdHex);
     } catch (err) {
-      console.warn('[sendCalls] ⚠️ eth_chainId failed, defaulting to 0x2105 (Base mainnet)', err);
+      console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
 
-    const buildParams = (from: Address, usePaymaster: boolean) => ({
+    // Build transaction params with paymaster
+    const params = {
       version: '2.0' as const,
       atomicRequired: true,
       chainId: chainIdHex,
-      from,
+      from: subAccountAddress, // Always send from Sub Account
       calls: calls.map((call) => ({
         to: call.to,
         data: call.data || '0x',
         value: call.value || '0x0',
       })),
-      capabilities: usePaymaster && PAYMASTER_URL ? { 
+      capabilities: PAYMASTER_URL ? { 
         paymasterService: { 
           url: PAYMASTER_URL 
         } 
       } : undefined,
-    });
-
-    const tryWalletSendCalls = async (from: Address, usePaymaster: boolean) => {
-      return (await provider.request({
-        method: 'wallet_sendCalls',
-        params: [buildParams(from, usePaymaster)],
-      })) as string;
     };
 
-    let lastError: unknown = null;
+    console.log('[sendCalls] 📦 Transaction params:', JSON.stringify(params, null, 2));
 
-    // Check paymaster capability (preflight)
-    if (PAYMASTER_URL && fromSub) {
-      try {
-        const caps = await provider.request({
-          method: 'wallet_getCapabilities',
-          params: [fromSub],
-        }) as any;
-        const chainCaps = caps?.[chainIdHex];
-        if (!chainCaps?.paymasterService?.supported) {
-          console.warn('[sendCalls] ⚠️ Paymaster not supported by wallet on this chain');
-          throw new Error('Gas sponsorship not available. Please reconnect with Base Account or ensure you have ETH for gas.');
-        }
-        console.log('[sendCalls] ✅ Paymaster capability confirmed');
-      } catch (capErr) {
-        console.warn('[sendCalls] ⚠️ Capability check failed:', capErr);
-        // Don't hard-fail on capability check, proceed to transaction attempt
+    try {
+      // Send transaction from Sub Account with paymaster
+      // This will automatically trigger Spend Permissions if needed
+      const callsId = (await provider.request({
+        method: 'wallet_sendCalls',
+        params: [params],
+      })) as string;
+
+      console.log('[sendCalls] ✅ Transaction sent successfully! Calls ID:', callsId);
+      console.log('[sendCalls] 💡 Auto Spend Permissions: If this was your first transaction, you should have seen a popup to approve spending from your Base Account.');
+      
+      return callsId;
+    } catch (error: any) {
+      console.error('[sendCalls] ❌ Transaction failed:', error);
+      
+      // Provide helpful error messages
+      if (error?.message?.includes('User rejected')) {
+        throw new Error('Transaction cancelled by user');
+      } else if (error?.message?.includes('insufficient')) {
+        throw new Error('Insufficient balance. Please add funds to your Base Account.');
+      } else if (error?.message?.includes('paymaster')) {
+        throw new Error('Gas sponsorship failed. Please try again.');
       }
+      
+      throw error;
     }
-
-    // 1) Try sub account with paymaster FIRST (default account, gas-free)
-    if (fromSub && PAYMASTER_URL) {
-      try {
-        const id = await tryWalletSendCalls(fromSub, true);
-        console.log('[sendCalls] ✅ Sub + Paymaster succeeded (gas-free)');
-        return id;
-      } catch (e) {
-        console.warn('[sendCalls] ❌ Sub + Paymaster failed:', e);
-        lastError = e;
-      }
-    }
-
-    // 2) Try universal account with paymaster (has USDC balance, gas-free)
-    if (PAYMASTER_URL) {
-      try {
-        const id = await tryWalletSendCalls(fromUniversal, true);
-        console.log('[sendCalls] ✅ Universal + Paymaster succeeded (gas-free)');
-        return id;
-      } catch (e) {
-        console.warn('[sendCalls] ❌ Universal + Paymaster failed:', e);
-        lastError = e;
-      }
-    }
-
-    // 3) Final: do not fall back to eth_sendTransaction to avoid ETH prompts
-    console.error('[sendCalls] ❌ All paymaster paths failed. No ETH fallback allowed.');
-    throw lastError ?? new Error('Gas sponsorship failed. Transactions require a paymaster to avoid gas fees.');
-  }, [provider, subAccountAddress, universalAddress]);
+  }, [provider, subAccountAddress]);
 
   // FIXED: Get calls status via provider (EIP-5792)
   // Pass the id string directly, not wrapped in an object
