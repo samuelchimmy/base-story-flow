@@ -320,26 +320,27 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     let lastError: unknown = null;
 
-    // 1) Try sub account with paymaster (best UX, no pop-ups)
+    // 1) Try universal account without paymaster FIRST for token operations
+    //    (Universal account holds the USDC balance, sub-account may be empty)
+    try {
+      const id = await tryWalletSendCalls(fromUniversal, false);
+      console.log('[sendCalls] ✅ Universal (no paymaster) succeeded');
+      return id;
+    } catch (e) {
+      console.warn('[sendCalls] ❌ Universal wallet_sendCalls failed, trying sub + paymaster...', e);
+      lastError = e;
+    }
+
+    // 2) Try sub account with paymaster (for non-token operations)
     if (fromSub && PAYMASTER_URL) {
       try {
         const id = await tryWalletSendCalls(fromSub, true);
         console.log('[sendCalls] ✅ Sub + Paymaster succeeded');
         return id;
       } catch (e) {
-        console.warn('[sendCalls] ❌ Sub + Paymaster failed, falling back...', e);
+        console.warn('[sendCalls] ❌ Sub + Paymaster failed, final fallback...', e);
         lastError = e;
       }
-    }
-
-    // 2) Try universal account without paymaster (uses user ETH, may pop-up)
-    try {
-      const id = await tryWalletSendCalls(fromUniversal, false);
-      console.log('[sendCalls] ✅ Universal (no paymaster) succeeded');
-      return id;
-    } catch (e) {
-      console.warn('[sendCalls] ❌ Universal wallet_sendCalls failed, final fallback to eth_sendTransaction...', e);
-      lastError = e;
     }
 
     // 3) Final fallback: sequential eth_sendTransaction from universal
