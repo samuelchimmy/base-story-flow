@@ -4,7 +4,7 @@ import { base } from 'viem/chains';
 import type { Address } from 'viem';
 
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
-const PAYMASTER_URL = import.meta.env.VITE_CDP_PAYMASTER_URL as string | undefined;
+const PAYMASTER_URL = 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f';
 
 interface SubAccount {
   address: Address;
