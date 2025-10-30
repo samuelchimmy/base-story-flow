@@ -96,52 +96,15 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       return;
     }
 
-    const tipToast = toast.loading('Checking balance...');
+    const tipToast = toast.loading('Preparing tip...');
     try {
-      const wallet = useWallet();
-      
-      if (!wallet.provider) {
-        toast.error('Provider not available', { id: tipToast });
-        return;
-      }
+      const calls: { to: `0x${string}`; data: `0x${string}` }[] = [];
 
-      // Get the actual tip amount from tipAmount prop or fetch from contract
-      const { checkTipPrereqs, decodeRevert } = await import('@/lib/tip');
-      const actualTipAmount = typeof tipAmount === 'bigint' && tipAmount > 0n ? tipAmount : 100000n; // Default to 0.1 USDC
-      
-      // Determine which address to use
-      const fromAddress = wallet.universalAddress || wallet.subAccountAddress;
-      
-      if (!fromAddress) {
-        toast.error('No wallet address available', { id: tipToast });
-        return;
-      }
-
-      // Preflight checks
-      toast.loading('Checking USDC balance...', { id: tipToast });
-      const { hasBalance, hasAllowance, balance } = await checkTipPrereqs(
-        wallet.provider,
-        fromAddress,
-        actualTipAmount
-      );
-
-      if (!hasBalance) {
-        toast.error(`You need ${(Number(actualTipAmount) / 1e6).toFixed(2)} USDC to tip.`, {
-          id: tipToast,
-          description: `Your balance: ${(Number(balance) / 1e6).toFixed(2)} USDC`,
-        });
-        return;
-      }
-
-      // Build calls array
-      const calls: Array<{ to: `0x${string}`; data: `0x${string}` }> = [];
-
-      // Only include approve if needed
-      if (!hasAllowance && actualTipAmount > 0n) {
+      if (typeof tipAmount === 'bigint' && tipAmount > 0n) {
         const approveData = encodeFunctionData({
           abi: USDC_ABI,
           functionName: 'approve',
-          args: [AMA_CONTRACT_ADDRESS, actualTipAmount],
+          args: [AMA_CONTRACT_ADDRESS, tipAmount],
         });
         calls.push({ to: USDC_CONTRACT_ADDRESS, data: approveData });
       }
@@ -153,14 +116,11 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       });
       calls.push({ to: AMA_CONTRACT_ADDRESS, data: tipData });
 
-      toast.loading('Sending tip...', { id: tipToast });
       await sendCalls(calls);
       toast.success('Tip sent successfully!', { id: tipToast });
     } catch (error) {
       console.error('Error tipping message:', error);
-      const { decodeRevert } = await import('@/lib/tip');
-      const message = decodeRevert(error);
-      toast.error(message, { id: tipToast });
+      toast.error('Failed to tip message', { id: tipToast });
     }
   };
 

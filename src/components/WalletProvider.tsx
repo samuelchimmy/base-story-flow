@@ -20,7 +20,6 @@ interface WalletContextType {
   balance: string | null;
   loading: boolean;
   error: string | null;
-  provider: any | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   sendCalls: (calls: Array<{ to: Address; data?: `0x${string}`; value?: string }>) => Promise<string>;
@@ -425,7 +424,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         balance,
         loading,
         error,
-        provider,
         connect,
         disconnect,
         sendCalls,
