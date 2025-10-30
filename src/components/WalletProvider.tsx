@@ -197,40 +197,37 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Extract universal address
-      const universalAcc = accounts[0];
-      console.log('[DEBUG] 🎯 Universal Account:', universalAcc);
-      
-      // Explicitly create/attach sub account for this session
+      // Prepare to attach/resolve accounts explicitly (avoid relying on array order)
       console.log('[DEBUG] 🔧 Creating/attaching Sub Account...');
+      let subAcc: Address | null = null;
       try {
-        await provider.request({
+        const created = await provider.request({
           method: 'wallet_addSubAccount',
           params: [{ account: { type: 'create' } }],
-        });
-        console.log('[DEBUG] ✅ Sub Account attached');
+        }) as { address: Address };
+        subAcc = created?.address ?? null;
+        console.log('[DEBUG] ✅ Sub Account attached:', subAcc);
       } catch (subErr) {
         console.warn('[DEBUG] ⚠️ Sub Account attach failed (may already exist):', subErr);
       }
 
-      // Resolve sub account address directly
-      console.log('[DEBUG] 🔍 Resolving Sub Account address...');
-      let subAcc: Address | null = null;
-      try {
-        const { subAccounts } = await provider.request({
-          method: 'wallet_getSubAccounts',
-          params: [{ 
-            account: universalAcc, 
-            domain: window.location.origin 
-          }],
-        }) as { subAccounts: SubAccount[] };
-        
-        subAcc = subAccounts?.[0]?.address || null;
-        console.log('[DEBUG] 🎯 Sub Account resolved:', subAcc);
-      } catch (getSubErr) {
-        console.error('[DEBUG] ❌ Failed to resolve Sub Account:', getSubErr);
-        setError('Failed to create app account. Please refresh and try again.');
-        return;
+      if (!subAcc) {
+        console.log('[DEBUG] 🔍 Trying to resolve existing Sub Account...');
+        try {
+          const { subAccounts } = await provider.request({
+            method: 'wallet_getSubAccounts',
+            params: [{ 
+              account: (accounts as Address[])[0], // best-effort; we'll still resolve universal separately
+              domain: window.location.origin 
+            }],
+          }) as { subAccounts: SubAccount[] };
+          subAcc = subAccounts?.[0]?.address || null;
+          console.log('[DEBUG] 🎯 Sub Account resolved (fallback):', subAcc);
+        } catch (getSubErr) {
+          console.error('[DEBUG] ❌ Failed to resolve Sub Account:', getSubErr);
+          setError('Failed to create app account. Please refresh and try again.');
+          return;
+        }
       }
 
       if (!subAcc) {
@@ -239,8 +236,19 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Determine universal account explicitly (exclude sub account from returned accounts)
+      let universalAcc = (accounts as Address[]).find(
+        (a) => a?.toLowerCase?.() !== subAcc!.toLowerCase()
+      ) as Address | undefined;
+
+      if (!universalAcc) {
+        // Fallback: if provider only returned one or matching account, use the first
+        universalAcc = (accounts as Address[])[0];
+      }
+      console.log('[DEBUG] 🎯 Universal Account (resolved):', universalAcc);
+
       // Set addresses
-      setUniversalAddress(universalAcc);
+      setUniversalAddress(universalAcc as Address);
       setSubAccountAddress(subAcc);
       console.log('[DEBUG] ✓ Both accounts set - Universal:', universalAcc, 'Sub:', subAcc);
       
