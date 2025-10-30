@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     const { storyId, contractAddress, storyCreatedAt } = await req.json();
 
-    if (!storyId || !contractAddress || !storyCreatedAt) {
+    if (storyId === null || storyId === undefined || !contractAddress || !storyCreatedAt) {
       return new Response(
         JSON.stringify({ error: 'storyId, contractAddress, and storyCreatedAt are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
