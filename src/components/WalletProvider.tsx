@@ -326,7 +326,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
 
-    // Build transaction params with paymaster
+    // Build transaction params - paymaster is already configured at SDK level
     const params = {
       version: '2.0' as const,
       atomicRequired: true,
@@ -337,11 +337,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         data: call.data || '0x',
         value: call.value || '0x0',
       })),
-      capabilities: PAYMASTER_URL ? { 
-        paymasterService: { 
-          url: PAYMASTER_URL 
-        } 
-      } : undefined,
     };
 
     console.log('[sendCalls] 📦 Transaction params:', JSON.stringify(params, null, 2));
