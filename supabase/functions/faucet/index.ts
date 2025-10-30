@@ -1,5 +1,9 @@
 // supabase/functions/faucet/index.ts
 // Implementation using the official Coinbase CDP SDK
+// 
+// ⚠️ NOTE: This function is for TESTNET ONLY (Base Sepolia)
+// The mainnet version of BaseStory uses a different funding mechanism
+// This function is preserved for the separate testnet deployment
 
 import { CdpClient } from 'npm:@coinbase/cdp-sdk@^1.38.3';
 import { createPublicClient, http, parseUnits } from 'npm:viem@^2.0.0';

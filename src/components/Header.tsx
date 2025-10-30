@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useWallet } from './WalletProvider';
 import { Button } from './ui/button';
 import { FundAccountButton } from './FundAccountButton';
+import { FundAccountModal } from './FundAccountModal';
 import { toast } from 'sonner';
 import { Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Header = () => {
-  const { isConnected, username, universalAddress, balance, loading, connect, disconnect } = useWallet();
+  const { isConnected, username, universalAddress, balance, loading, connect, disconnect, fetchBalance } = useWallet();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const formatAddress = (addr: string | null) => 
     addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : '';
@@ -18,8 +21,6 @@ export const Header = () => {
     }
   };
 
-  // --- THE FIX IS HERE: Create a simple boolean to check the balance ---
-  // This will be true only if the balance is a valid number and less than or equal to 0.1
   const showFundButton = balance !== null && parseFloat(balance) <= 0.1;
 
   return (
@@ -50,8 +51,7 @@ export const Header = () => {
                 </span>
               </div>
 
-              {/* --- THE FIX IS HERE: Only render the button if the condition is true --- */}
-              {showFundButton && <FundAccountButton />}
+              {showFundButton && <FundAccountButton onClick={() => setIsModalOpen(true)} />}
               
               <Button
                 variant="outline"
@@ -74,6 +74,14 @@ export const Header = () => {
           )}
         </div>
       </div>
+
+      <FundAccountModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        universalAddress={universalAddress || ''}
+        currentBalance={balance || '0'}
+        onBalanceUpdate={fetchBalance}
+      />
     </header>
   );
 };

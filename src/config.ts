@@ -1,7 +1,7 @@
 // src/config.ts
 
-// --- BaseStoryV2 Smart Contract Configuration ---
-export const CONTRACT_ADDRESS = '0x8766cB332ABcAb9B7B77C8415313631072838a9C' as const;
+// --- BaseStoryV2 Smart Contract Configuration (BASE MAINNET) ---
+export const CONTRACT_ADDRESS = '0xF3f064Cca43bc3Da3831e45d32a5c9311f42B7e9' as const;
 
 export const CONTRACT_ABI = [
 	{
@@ -854,8 +854,8 @@ export const CONTRACT_ABI = [
 	}
 ] as const;
 
-// --- BaseAMA Smart Contract Configuration ---
-export const AMA_CONTRACT_ADDRESS = '0x588750B2670e640d4bE0e46d1221f142d6c5566b' as const;
+// --- BaseAMA Smart Contract Configuration (BASE MAINNET) ---
+export const AMA_CONTRACT_ADDRESS = '0x9102B3e196e74D3e24C1594c0f184Abb3A10DDCF' as const;
 
 export const AMA_CONTRACT_ABI = [
 	{
@@ -2025,8 +2025,8 @@ export const AMA_CONTRACT_ABI = [
 ] as const;
 
 
-// --- USDC Contract Configuration ---
-export const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
+// --- USDC Contract Configuration (BASE MAINNET) ---
+export const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
 
 export const USDC_ABI = [
   {

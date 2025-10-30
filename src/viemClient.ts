@@ -1,7 +1,7 @@
 import { createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 
 export const publicClient = createPublicClient({
-  chain: baseSepolia,
+  chain: base,
   transport: http(),
 }) as any; // Type assertion to avoid viem version conflicts

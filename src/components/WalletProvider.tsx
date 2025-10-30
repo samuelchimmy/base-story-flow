@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { createBaseAccountSDK } from '@base-org/account';
-import { baseSepolia } from 'viem/chains'; 
+import { base } from 'viem/chains'; 
 import type { Address } from 'viem';
 
-const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
+const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
 
 interface SubAccount {
   address: Address;
@@ -66,11 +66,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          appChainIds: [baseSepolia.id], 
+          appChainIds: [base.id], 
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
           },
+          paymasterUrls: {
+            [base.id]: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
+          }
         });
 
         const providerInstance = sdkInstance.getProvider();
@@ -154,11 +157,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const sdkInstance = createBaseAccountSDK({
           appName: 'BaseStory',
           appLogoUrl: window.location.origin + '/favicon.ico',
-          appChainIds: [baseSepolia.id],
+          appChainIds: [base.id],
           subAccounts: {
             creation: 'on-connect',
             defaultAccount: 'sub',
           },
+          paymasterUrls: {
+            [base.id]: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
+          }
         });
         const providerInstance = sdkInstance.getProvider();
         setProvider(providerInstance);
@@ -281,13 +287,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         params: [
           {
             version: '2.0',
-            chainId: `0x${baseSepolia.id.toString(16)}`,
+            chainId: '0x2105', // Base mainnet (8453 in hex)
             from: subAccountAddress,
             calls: calls.map(call => ({
               to: call.to,
               data: call.data || '0x',
               value: call.value || '0x0',
             })),
+            capabilities: {
+              paymasterService: {
+                url: 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f'
+              }
+            }
           },
         ],
       }) as string;
