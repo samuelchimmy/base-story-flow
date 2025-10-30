@@ -300,7 +300,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const buildParams = (from: Address, usePaymaster: boolean) => ({
-      version: '2.0.0' as const,
+      version: '2.0' as const,
       atomicRequired: true,
       chainId: chainIdHex,
       from,
@@ -345,29 +345,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // 3) Final fallback: sequential eth_sendTransaction from universal
-    try {
-      let lastTx = '';
-      for (const call of calls) {
-        const tx = (await provider.request({
-          method: 'eth_sendTransaction',
-          params: [
-            {
-              from: fromUniversal,
-              to: call.to,
-              data: call.data || '0x',
-              value: call.value || '0x0',
-            },
-          ],
-        })) as string;
-        lastTx = tx;
-      }
-      console.log('[sendCalls] ✅ Fallback eth_sendTransaction path succeeded');
-      return lastTx;
-    } catch (e) {
-      console.error('[sendCalls] ❌ All send paths failed');
-      throw lastError ?? e;
-    }
+    // 3) Final: do not fall back to eth_sendTransaction to avoid ETH prompts
+    throw lastError ?? new Error('All send paths failed');
   }, [provider, subAccountAddress, universalAddress]);
 
   // FIXED: Get calls status via provider (EIP-5792)
