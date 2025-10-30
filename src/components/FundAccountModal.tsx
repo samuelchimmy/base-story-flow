@@ -90,44 +90,44 @@ export const FundAccountModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md mx-4 rounded-3xl border-0 shadow-2xl p-8">
+      <DialogContent className="sm:max-w-[400px] max-w-[90vw] mx-auto rounded-2xl border-0 shadow-2xl p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center mb-2">
+          <DialogTitle className="text-xl font-bold text-center mb-1">
             Fund Your Account
           </DialogTitle>
         </DialogHeader>
 
         {!depositDetected ? (
-          <div className="space-y-6 py-4">
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Current Balance</p>
-              <p className="text-3xl font-bold">{currentBalance} USDC</p>
+          <div className="space-y-4 py-2">
+            <div className="text-center space-y-1">
+              <p className="text-xs text-muted-foreground">Current Balance</p>
+              <p className="text-2xl font-bold">{currentBalance} USDC</p>
             </div>
 
             <div className="h-px bg-border" />
 
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground text-center">Your Deposit Address</p>
-              <div className="relative bg-muted rounded-2xl p-4 pr-12">
-                <p className="text-sm font-mono break-all">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground text-center">Your Deposit Address</p>
+              <div className="relative bg-muted rounded-xl p-3 pr-10">
+                <p className="text-xs font-mono break-all pr-2">
                   {formatAddress(universalAddress)}
                 </p>
                 <button
                   onClick={copyAddress}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-background rounded-lg transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-background rounded-lg transition-colors"
                 >
-                  <Copy className="w-5 h-5 text-muted-foreground" />
+                  <Copy className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 py-4">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              <p className="text-muted-foreground">Waiting for deposit...</p>
+            <div className="flex items-center justify-center gap-2 py-3">
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Waiting for deposit...</p>
             </div>
 
-            <div className="bg-muted/50 rounded-2xl p-4 space-y-2 text-sm">
-              <p className="font-semibold">⚡ Transactions on BaseStory are gasless</p>
+            <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs">
+              <p className="font-semibold text-sm">⚡ Transactions on BaseStory are gasless</p>
               <p className="text-muted-foreground">Send USDC from any wallet for tipping</p>
               <p className="text-muted-foreground">Usually takes 10-30 seconds</p>
               <p className="text-muted-foreground">Minimum: 0.1 USDC</p>
@@ -136,25 +136,25 @@ export const FundAccountModal = ({
             <Button
               onClick={onClose}
               variant="outline"
-              className="w-full h-12 rounded-full text-base"
+              className="w-full h-10 rounded-full text-sm"
             >
               Close
             </Button>
           </div>
         ) : (
-          <div className="space-y-6 py-8 text-center">
+          <div className="space-y-4 py-6 text-center">
             <div className="flex justify-center">
               <div className="animate-scale-in">
-                <CheckCircle2 className="w-20 h-20 text-green-500" strokeWidth={2} />
+                <CheckCircle2 className="w-16 h-16 text-green-500" strokeWidth={2} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-2xl font-bold text-green-600">Deposit Received!</p>
-              <p className="text-3xl font-bold">{depositAmount} USDC</p>
+            <div className="space-y-1">
+              <p className="text-xl font-bold text-green-600">Deposit Received!</p>
+              <p className="text-2xl font-bold">{depositAmount} USDC</p>
             </div>
 
-            <p className="text-muted-foreground">Closing in {countdown}s...</p>
+            <p className="text-sm text-muted-foreground">Closing in {countdown}s...</p>
           </div>
         )}
       </DialogContent>
