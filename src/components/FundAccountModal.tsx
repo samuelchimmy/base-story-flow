@@ -92,7 +92,7 @@ export const FundAccountModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[400px] max-w-[90vw] mx-auto rounded-2xl border-0 shadow-2xl p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-center mb-1">
+          <DialogTitle className="text-lg font-bold text-center mb-1">
             Fund Your Account
           </DialogTitle>
         </DialogHeader>
@@ -101,7 +101,7 @@ export const FundAccountModal = ({
           <div className="space-y-4 py-2">
             <div className="text-center space-y-1">
               <p className="text-xs text-muted-foreground">Current Balance</p>
-              <p className="text-2xl font-bold">{currentBalance} USDC</p>
+              <p className="text-xl font-bold">{currentBalance} USDC</p>
             </div>
 
             <div className="h-px bg-border" />
@@ -126,8 +126,8 @@ export const FundAccountModal = ({
               <p className="text-sm text-muted-foreground">Waiting for deposit...</p>
             </div>
 
-            <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs">
-              <p className="font-semibold text-sm">⚡ Transactions on BaseStory are gasless</p>
+            <div className="bg-muted/50 rounded-xl p-3 space-y-1.5 text-xs text-center">
+              <p className="font-semibold text-xs">Transactions on BaseStory are gasless</p>
               <p className="text-muted-foreground">Send USDC from any wallet for tipping</p>
               <p className="text-muted-foreground">Usually takes 10-30 seconds</p>
               <p className="text-muted-foreground">Minimum: 0.1 USDC</p>
