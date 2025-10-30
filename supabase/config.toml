@@ -1,8 +1,5 @@
 project_id = "ewqoryvormjvzumqaarf"
 
-[functions.faucet]
-verify_jwt = false
-
 [functions.increment-view]
 verify_jwt = false
 
