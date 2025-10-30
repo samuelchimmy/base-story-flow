@@ -197,54 +197,72 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (accounts.length > 1) {
-        // With `defaultAccount: 'sub'`, the order is [Sub Account, Universal Account].
-        const subAcc = accounts[0];
-        const universalAcc = accounts[1];
-        console.log('[DEBUG] 🎯 Sub Account (default) found:', subAcc);
-        console.log('[DEBUG] 🎯 Universal Account (parent) found:', universalAcc);
+      // Extract universal address
+      const universalAcc = accounts[0];
+      console.log('[DEBUG] 🎯 Universal Account:', universalAcc);
+      
+      // Explicitly create/attach sub account for this session
+      console.log('[DEBUG] 🔧 Creating/attaching Sub Account...');
+      try {
+        await provider.request({
+          method: 'wallet_addSubAccount',
+          params: [{ account: { type: 'create' } }],
+        });
+        console.log('[DEBUG] ✅ Sub Account attached');
+      } catch (subErr) {
+        console.warn('[DEBUG] ⚠️ Sub Account attach failed (may already exist):', subErr);
+      }
+
+      // Resolve sub account address directly
+      console.log('[DEBUG] 🔍 Resolving Sub Account address...');
+      let subAcc: Address | null = null;
+      try {
+        const { subAccounts } = await provider.request({
+          method: 'wallet_getSubAccounts',
+          params: [{ 
+            account: universalAcc, 
+            domain: window.location.origin 
+          }],
+        }) as { subAccounts: SubAccount[] };
         
-        // Correctly assign the addresses to the state variables
-        setSubAccountAddress(subAcc);
-        setUniversalAddress(universalAcc);
-        console.log('[DEBUG] ✓ State updated for both accounts.');
-        
-        setIsConnected(true);
-        console.log('[DEBUG] ✓ isConnected set to true');
-        
-        setUsername(generateUsername());
-        console.log('[DEBUG] ✓ Username generated');
-        // Store connection state
-        localStorage.setItem('walletConnected', 'true');
-        console.log('[DEBUG] ✓ Connection state saved to localStorage');
-        
-        // Fetch balance for the now-correct Universal Address
-        console.log('[DEBUG] 💵 Calling fetchBalance() after connection...');
-        // We call fetchBalance directly here since the state update might not be immediate
-        // for the useEffect that polls.
-        if (universalAcc) {
-            // Manually create a temporary fetcher to ensure we use the new address
-            const fetcher = async () => {
-                try {
-                    const balanceData = `0x70a08231000000000000000000000000${universalAcc.substring(2)}`;
-                    const balanceHex = await provider.request({
-                        method: 'eth_call',
-                        params: [{ to: USDC_CONTRACT_ADDRESS, data: balanceData }, 'latest'],
-                    }) as string;
-                    const balanceWei = BigInt(balanceHex);
-                    const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
-                    setBalance(formattedBalance);
-                    console.log('[DEBUG] ✅ Initial balance fetched successfully:', formattedBalance);
-                } catch (e) {
-                    console.error('Initial fetchBalance failed:', e);
-                }
-            };
-            fetcher();
-        }
-      } else {
-        // Fallback for unexpected account array structures
-        console.error('[DEBUG] ❌ Expected at least 2 accounts but received:', accounts.length);
-        if (accounts.length > 0) setUniversalAddress(accounts[0]); // Best guess
+        subAcc = subAccounts?.[0]?.address || null;
+        console.log('[DEBUG] 🎯 Sub Account resolved:', subAcc);
+      } catch (getSubErr) {
+        console.error('[DEBUG] ❌ Failed to resolve Sub Account:', getSubErr);
+        setError('Failed to create app account. Please refresh and try again.');
+        return;
+      }
+
+      if (!subAcc) {
+        console.error('[DEBUG] ❌ No Sub Account available');
+        setError('Could not create app account. Please refresh and reconnect.');
+        return;
+      }
+
+      // Set addresses
+      setUniversalAddress(universalAcc);
+      setSubAccountAddress(subAcc);
+      console.log('[DEBUG] ✓ Both accounts set - Universal:', universalAcc, 'Sub:', subAcc);
+      
+      setIsConnected(true);
+      setUsername(generateUsername());
+      localStorage.setItem('walletConnected', 'true');
+      
+      // Fetch initial balance
+      console.log('[DEBUG] 💵 Fetching initial balance...');
+      try {
+        const balanceData = `0x70a08231000000000000000000000000${universalAcc.substring(2)}`;
+        const balanceHex = await provider.request({
+          method: 'eth_call',
+          params: [{ to: USDC_CONTRACT_ADDRESS, data: balanceData }, 'latest'],
+        }) as string;
+        const balanceWei = BigInt(balanceHex);
+        const formattedBalance = (Number(balanceWei) / 1_000_000).toFixed(2);
+        setBalance(formattedBalance);
+        console.log('[DEBUG] ✅ Initial balance:', formattedBalance, 'USDC');
+      } catch (balErr) {
+        console.error('[DEBUG] ❌ Balance fetch failed:', balErr);
+        setBalance('0.00');
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error);
@@ -309,7 +327,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         data: call.data || '0x',
         value: call.value || '0x0',
       })),
-      capabilities: usePaymaster && PAYMASTER_URL ? { paymasterUrl: PAYMASTER_URL } : undefined,
+      capabilities: usePaymaster && PAYMASTER_URL ? { 
+        paymasterService: { 
+          url: PAYMASTER_URL 
+        } 
+      } : undefined,
     });
 
     const tryWalletSendCalls = async (from: Address, usePaymaster: boolean) => {
@@ -321,6 +343,25 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     let lastError: unknown = null;
 
+    // Check paymaster capability (preflight)
+    if (PAYMASTER_URL && fromSub) {
+      try {
+        const caps = await provider.request({
+          method: 'wallet_getCapabilities',
+          params: [fromSub],
+        }) as any;
+        const chainCaps = caps?.[chainIdHex];
+        if (!chainCaps?.paymasterService?.supported) {
+          console.warn('[sendCalls] ⚠️ Paymaster not supported by wallet on this chain');
+          throw new Error('Gas sponsorship not available. Please reconnect with Base Account or ensure you have ETH for gas.');
+        }
+        console.log('[sendCalls] ✅ Paymaster capability confirmed');
+      } catch (capErr) {
+        console.warn('[sendCalls] ⚠️ Capability check failed:', capErr);
+        // Don't hard-fail on capability check, proceed to transaction attempt
+      }
+    }
+
     // 1) Try sub account with paymaster FIRST (default account, gas-free)
     if (fromSub && PAYMASTER_URL) {
       try {
@@ -328,7 +369,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         console.log('[sendCalls] ✅ Sub + Paymaster succeeded (gas-free)');
         return id;
       } catch (e) {
-        console.warn('[sendCalls] ❌ Sub + Paymaster failed, trying universal...', e);
+        console.warn('[sendCalls] ❌ Sub + Paymaster failed:', e);
         lastError = e;
       }
     }
@@ -340,13 +381,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         console.log('[sendCalls] ✅ Universal + Paymaster succeeded (gas-free)');
         return id;
       } catch (e) {
-        console.warn('[sendCalls] ❌ Universal + Paymaster failed, final fallback...', e);
+        console.warn('[sendCalls] ❌ Universal + Paymaster failed:', e);
         lastError = e;
       }
     }
 
     // 3) Final: do not fall back to eth_sendTransaction to avoid ETH prompts
-    throw lastError ?? new Error('All send paths failed');
+    console.error('[sendCalls] ❌ All paymaster paths failed. No ETH fallback allowed.');
+    throw lastError ?? new Error('Gas sponsorship failed. Transactions require a paymaster to avoid gas fees.');
   }, [provider, subAccountAddress, universalAddress]);
 
   // FIXED: Get calls status via provider (EIP-5792)
