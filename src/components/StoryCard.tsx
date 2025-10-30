@@ -160,7 +160,6 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
   };
 
-  // --- FIX #3: Complete rewrite of the handleTip function for USDC ---
   const handleTip = async () => {
     if (!isConnected || isProcessing) {
       if (!isConnected) toast.error('Please connect your wallet first');
@@ -168,44 +167,79 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
     }
     
     setIsProcessing(true);
-    const tipToast = toast.loading('Preparing your tip...');
+    const tipToast = toast.loading('Checking balance...');
     
     try {
-      // Define the tip amount - USDC has 6 decimals, so 0.1 USDC is 100,000
-      const tipAmount = parseUnits('0.1', 6);
+      const wallet = useWallet();
+      
+      if (!wallet.provider) {
+        toast.error('Provider not available', { id: tipToast });
+        setIsProcessing(false);
+        return;
+      }
 
-      // Prepare both calls upfront so we can batch them atomically with one sponsored user operation
-      const approveCalldata = encodeFunctionData({
-        abi: USDC_ABI,
-        functionName: 'approve',
-        args: [CONTRACT_ADDRESS, tipAmount],
-      });
+      // Get the actual tip amount from contract
+      const { getTipAmount, checkTipPrereqs, decodeRevert } = await import('@/lib/tip');
+      const tipAmount = await getTipAmount(wallet.provider);
+      
+      // Determine which address to use - prioritize universal as it has USDC
+      const fromAddress = wallet.universalAddress || wallet.subAccountAddress;
+      
+      if (!fromAddress) {
+        toast.error('No wallet address available', { id: tipToast });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Preflight checks
+      toast.loading('Checking USDC balance...', { id: tipToast });
+      const { hasBalance, hasAllowance, balance } = await checkTipPrereqs(
+        wallet.provider,
+        fromAddress,
+        tipAmount
+      );
+
+      if (!hasBalance) {
+        toast.error(`You need ${(Number(tipAmount) / 1e6).toFixed(2)} USDC to tip.`, {
+          id: tipToast,
+          description: `Your balance: ${(Number(balance) / 1e6).toFixed(2)} USDC`,
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Build calls array
+      const calls: Array<{ to: `0x${string}`; data: `0x${string}` }> = [];
+
+      // Only include approve if needed
+      if (!hasAllowance) {
+        const approveCalldata = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'approve',
+          args: [CONTRACT_ADDRESS, tipAmount],
+        });
+        calls.push({ to: USDC_CONTRACT_ADDRESS, data: approveCalldata });
+      }
 
       const tipCalldata = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'tipStory',
         args: [BigInt(story.id)],
       });
+      calls.push({ to: CONTRACT_ADDRESS, data: tipCalldata });
 
-      // Single sponsored user operation with two calls (approve -> tip)
-      toast.loading('Requesting approval and sending tip...', { id: tipToast });
-      await sendCalls([
-        { to: USDC_CONTRACT_ADDRESS, data: approveCalldata },
-        { to: CONTRACT_ADDRESS, data: tipCalldata },
-      ]);
+      // Send the transaction
+      toast.loading('Sending tip...', { id: tipToast });
+      await sendCalls(calls);
 
       toast.success('Tip sent successfully! Thank you. 💙', { id: tipToast });
       await refetchStories();
 
     } catch (error) {
       console.error('Failed to send tip:', error);
-      const message = typeof error === 'object' && error && 'message' in (error as any)
-        ? String((error as any).message)
-        : JSON.stringify(error);
-      toast.error('Failed to send tip.', {
-        id: tipToast,
-        description: message,
-      });
+      const { decodeRevert } = await import('@/lib/tip');
+      const message = decodeRevert(error);
+      toast.error(message, { id: tipToast });
     } finally {
       setIsProcessing(false);
     }
@@ -272,7 +306,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
           aria-label="Tip author"
         >
           <Send className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-xs sm:text-sm">Tip 0.1 USDC</span>
+          <span className="text-xs sm:text-sm">Tip USDC</span>
         </button>
 
         <button
