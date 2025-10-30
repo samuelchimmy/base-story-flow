@@ -137,8 +137,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('[DEBUG] 💰 Formatted balance:', formattedBalance, 'USDC');
       
-      // Always update state with the fresh balance
-      setBalance(formattedBalance);
+      // Force state update by using functional form
+      setBalance((prevBalance) => {
+        console.log('[DEBUG] 🔄 Updating balance from', prevBalance, 'to', formattedBalance);
+        return formattedBalance;
+      });
     } catch (error) {
       console.error('❌ Failed to fetch USDC balance:', error);
       setBalance('0.00');
