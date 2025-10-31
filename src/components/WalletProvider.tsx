@@ -338,7 +338,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         value: call.value || '0x0',
       })),
       capabilities: PAYMASTER_URL ? { 
-        paymasterUrl: PAYMASTER_URL 
+        paymasterService: { url: PAYMASTER_URL }
       } : undefined,
     };
 
@@ -362,8 +362,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       // Provide helpful error messages
       if (error?.message?.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
-      } else if (error?.message?.includes('insufficient')) {
-        throw new Error('Insufficient balance. Please add funds to your Base Account.');
+      } else if (error?.message?.toLowerCase()?.includes('insufficient funds for gas') || 
+                 error?.message?.toLowerCase()?.includes('gas fee')) {
+        throw new Error('Gas sponsorship not applied. Please retry — your gas should be sponsored.');
       } else if (error?.message?.includes('paymaster')) {
         throw new Error('Gas sponsorship failed. Please try again.');
       }
