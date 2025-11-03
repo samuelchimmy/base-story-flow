@@ -360,12 +360,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.error('[sendCalls] ❌ Transaction failed:', error);
       
       // Provide helpful error messages
-      if (error?.message?.includes('User rejected')) {
+      const msg = error?.message || '';
+      const code = (error?.code ?? error?.data?.code);
+      const lower = typeof msg === 'string' ? msg.toLowerCase() : '';
+
+      // Specific: CDP Paymaster allowlist denials (-32002)
+      if (code === -32002 || lower.includes('not in allowlist') || lower.includes('request denied')) {
+        const m = (typeof msg === 'string' ? msg : JSON.stringify(error));
+        const addrMatch = m.match(/0x[a-fA-F0-9]{40}/);
+        const culprit = addrMatch ? addrMatch[0] : 'the target address';
+        throw new Error(`Paymaster policy blocked this call. Add ${culprit} to your allowlist (Base mainnet 8453) and retry.`);
+      }
+
+      if (msg.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
-      } else if (error?.message?.toLowerCase()?.includes('insufficient funds for gas') || 
-                 error?.message?.toLowerCase()?.includes('gas fee')) {
+      } else if (lower.includes('insufficient funds for gas') || lower.includes('gas fee')) {
         throw new Error('Gas sponsorship not applied. Please retry — your gas should be sponsored.');
-      } else if (error?.message?.includes('paymaster')) {
+      } else if (msg.includes('paymaster')) {
         throw new Error('Gas sponsorship failed. Please try again.');
       }
       
