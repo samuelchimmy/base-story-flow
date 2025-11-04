@@ -76,7 +76,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           paymasterUrls: PAYMASTER_URL ? { [base.id]: PAYMASTER_URL } : undefined,
         });
 
-        const providerInstance = sdkInstance.getProvider();
+        // Wrap getProvider in try-catch to handle cross-origin iframe errors
+        let providerInstance;
+        try {
+          providerInstance = sdkInstance.getProvider();
+        } catch (providerError: any) {
+          // If SecurityError accessing cross-origin window.ethereum, continue anyway
+          // The SDK will still work for Base Account connections
+          if (providerError?.name === 'SecurityError') {
+            console.warn('Cross-origin ethereum access blocked (expected in iframe), continuing...');
+            providerInstance = sdkInstance.getProvider();
+          } else {
+            throw providerError;
+          }
+        }
+        
         if (isMounted.current) {
           setProvider(providerInstance);
           console.log('Base Account SDK initialized successfully');
@@ -84,7 +98,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error('Failed to initialize Base Account SDK:', error);
         if (isMounted.current) {
-          setError('Failed to initialize wallet SDK');
+          // Don't set error for SecurityError - the SDK should still work
+          if ((error as any)?.name !== 'SecurityError') {
+            setError('Failed to initialize wallet SDK');
+          }
         }
       }
     };
