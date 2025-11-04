@@ -343,19 +343,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
 
-    // Ensure we're on Base mainnet for sponsorship
-    if (chainIdHex !== '0x2105') {
-      try {
-        await provider.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }],
-        });
-        chainIdHex = '0x2105';
-        console.log('[sendCalls] 🔄 Switched to Base (0x2105)');
-      } catch (switchErr) {
-        console.warn('[sendCalls] ⚠️ Failed to switch to Base chain:', switchErr);
-      }
-    }
+    // Use current chain - paymaster configuration will determine if it's supported
+    console.log(`[sendCalls] 🔗 Using chain: ${chainIdHex}`);
 
     // Build transaction params with explicit paymaster capability
     const params = {
