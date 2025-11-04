@@ -343,6 +343,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
 
+    // Ensure we're on Base mainnet for sponsorship
+    if (chainIdHex !== '0x2105') {
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+        chainIdHex = '0x2105';
+        console.log('[sendCalls] 🔄 Switched to Base (0x2105)');
+      } catch (switchErr) {
+        console.warn('[sendCalls] ⚠️ Failed to switch to Base chain:', switchErr);
+      }
+    }
+
     // Build transaction params with explicit paymaster capability
     const params = {
       version: '2.0' as const,
@@ -393,6 +407,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Transaction cancelled by user');
       } else if (lower.includes('insufficient funds for gas') || lower.includes('gas fee')) {
         throw new Error('Gas sponsorship not applied. Please retry — your gas should be sponsored.');
+      } else if (
+        lower.includes('insufficient balance to perform useroperation') ||
+        lower.includes('sender balance and deposit together') ||
+        lower.includes('precheck')
+      ) {
+        throw new Error('Gas sponsorship not applied (AA precheck). Verify paymaster allowlist and Base chain (8453).');
       } else if (msg.includes('paymaster')) {
         throw new Error('Gas sponsorship failed. Please try again.');
       }

@@ -168,7 +168,7 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
       return;
     }
 
-    const owner = (universalAddress || subAccountAddress) as Address | null;
+    const owner = subAccountAddress as Address | null;
     if (!owner || !provider) {
       toast.error('Wallet not ready');
       return;
@@ -183,9 +183,9 @@ export const StoryCard = ({ story, refetchStories }: StoryCardProps) => {
 
       // 2) Balance/allowance preflight
       const { hasBalance, hasAllowance, balance } = await checkUSDCPrereqs(provider, owner, CONTRACT_ADDRESS as Address, tipAmount);
+      // Don't block on low balance — Base Account Spend Permissions can fund the Sub Account automatically
       if (!hasBalance) {
-        toast.error(`You need ${formatUsdc(tipAmount)} USDC. You have ${formatUsdc(balance)}.`, { id: tipToast });
-        return;
+        toast.message(`We'll request spend permission for ${formatUsdc(tipAmount)} USDC (you have ${formatUsdc(balance)}).`, { id: tipToast });
       }
 
       // 3) Build calls (conditional approve)

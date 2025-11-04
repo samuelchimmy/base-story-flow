@@ -97,7 +97,7 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       return;
     }
 
-    const owner = (universalAddress || subAccountAddress) as Address | null;
+    const owner = subAccountAddress as Address | null;
     if (!owner || !provider) {
       toast.error('Wallet not ready');
       return;
@@ -110,9 +110,9 @@ export const AMAMessageCard = ({ message, tipAmount }: AMAMessageCardProps) => {
       // If AMA requires a tip, ensure balance/allowance; otherwise only send the tip call
       if (typeof tipAmount === 'bigint' && tipAmount > 0n) {
         const { hasBalance, hasAllowance, balance } = await checkUSDCPrereqs(provider, owner, AMA_CONTRACT_ADDRESS, tipAmount);
+        // Don't block on low balance — Spend Permissions can fund the Sub Account
         if (!hasBalance) {
-          toast.error(`You need ${formatUsdc(tipAmount)} USDC. You have ${formatUsdc(balance)}.`, { id: tipToast });
-          return;
+          toast.message(`We'll request spend permission for ${formatUsdc(tipAmount)} USDC (you have ${formatUsdc(balance)}).`, { id: tipToast });
         }
         if (!hasAllowance) {
           const approveData = encodeFunctionData({
