@@ -74,6 +74,8 @@ export function formatUsdc(amount: bigint): string {
 
 export function decodeRevert(error: any): string {
   const raw = String((error && (error.message || error.cause?.message)) || error || 'Unknown error');
+  // Preserve detailed simulation diagnostics we throw from WalletProvider
+  if (/Failed to estimate gas \(simulation\)/i.test(raw)) return raw;
   if (/useroperation reverted/i.test(raw) || /execution reverted/i.test(raw)) {
     if (/insufficient/i.test(raw) || /balance/i.test(raw)) return 'Insufficient balance or allowance.';
     if (/allowance/i.test(raw)) return 'USDC allowance too low.';
@@ -81,7 +83,7 @@ export function decodeRevert(error: any): string {
     return 'Transaction would revert. Please check balance/inputs.';
   }
   if (/denied|rejected|User rejected/i.test(raw)) return 'User rejected the request.';
-  if (/gas/i.test(raw)) return 'Failed to estimate gas. Please try again.';
+  if (/gas/i.test(raw)) return 'Failed to estimate gas. Please try again or verify gas sponsorship.';
   return raw;
 }
 

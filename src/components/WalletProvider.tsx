@@ -378,15 +378,42 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Send transaction from Sub Account with paymaster
       // This will automatically trigger Spend Permissions if needed
-      const callsId = (await provider.request({
-        method: 'wallet_sendCalls',
-        params: [params],
-      })) as string;
+      // First attempt direct send; on estimation/precheck errors, simulate to get clearer reason then retry
+      try {
+        const callsId = (await provider.request({
+          method: 'wallet_sendCalls',
+          params: [params],
+        })) as string;
 
-      console.log('[sendCalls] ✅ Transaction sent successfully! Calls ID:', callsId);
-      console.log('[sendCalls] 💡 Auto Spend Permissions: If this was your first transaction, you should have seen a popup to approve spending from your Base Account.');
-      
-      return callsId;
+        console.log('[sendCalls] ✅ Transaction sent successfully! Calls ID:', callsId);
+        console.log('[sendCalls] 💡 Auto Spend Permissions: If this was your first transaction, you should have seen a popup to approve spending from your Base Account.');
+        return callsId;
+      } catch (primaryErr: any) {
+        const rawMsg = String(primaryErr?.message || '');
+        const looksLikeEstimation = /(estimate|precheck|insufficient balance to perform useroperation|sender balance and deposit together)/i.test(rawMsg);
+        if (!looksLikeEstimation) throw primaryErr;
+
+        console.warn('[sendCalls] ⚠️ Primary send failed, simulating calls for diagnosis...', primaryErr);
+        try {
+          const sim = await provider.request({
+            method: 'wallet_simulateCalls',
+            params: [params],
+          });
+          console.log('[sendCalls] 🧪 Simulation succeeded, retrying send...', sim);
+          const retryId = (await provider.request({
+            method: 'wallet_sendCalls',
+            params: [params],
+          })) as string;
+          console.log('[sendCalls] ✅ Retry sent successfully! Calls ID:', retryId);
+          return retryId;
+        } catch (simErr: any) {
+          console.error('[sendCalls] ❌ Simulation failed:', simErr);
+          const simMsg = String(simErr?.message || simErr);
+          throw new Error(
+            `Failed to estimate gas (simulation). ${simMsg}. Gas sponsorship likely not applied or contract call would revert. Verify paymaster allowlist (entry point + USDC approve + target function) and Base chain (8453).`
+          );
+        }
+      }
     } catch (error: any) {
       console.error('[sendCalls] ❌ Transaction failed:', error);
       
