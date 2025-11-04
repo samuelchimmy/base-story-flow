@@ -338,7 +338,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         value: call.value || '0x0',
       })),
       capabilities: PAYMASTER_URL ? { 
-        paymasterService: { url: PAYMASTER_URL }
+        paymasterUrl: PAYMASTER_URL 
       } : undefined,
     };
 
