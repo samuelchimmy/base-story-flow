@@ -4,7 +4,8 @@ import { base } from 'viem/chains';
 import type { Address } from 'viem';
 
 const USDC_CONTRACT_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
-const PAYMASTER_URL = 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f';
+// Use environment variable for paymaster URL - fallback to public endpoint
+const PAYMASTER_URL = import.meta.env.VITE_PAYMASTER_URL || 'https://api.developer.coinbase.com/rpc/v1/base/K0w5Uf93K5TJP4TSF3oMr9BAtJCqJ48f';
 
 interface SubAccount {
   address: Address;
@@ -416,21 +417,22 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         const m = (typeof msg === 'string' ? msg : JSON.stringify(error));
         const addrMatch = m.match(/0x[a-fA-F0-9]{40}/);
         const culprit = addrMatch ? addrMatch[0] : 'the target address';
-        throw new Error(`Paymaster policy blocked this call. Add ${culprit} to your allowlist (Base mainnet 8453) and retry.`);
+        throw new Error(`Gas sponsorship denied. Please ensure your paymaster is configured for Base mainnet (Chain ID: 8453). Contact support if this persists.`);
       }
 
       if (msg.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
       } else if (lower.includes('insufficient funds for gas') || lower.includes('gas fee')) {
-        throw new Error('Gas sponsorship not applied. Please retry — your gas should be sponsored.');
+        throw new Error('Insufficient funds. Your transaction requires spend permissions from your Base Account. Please approve when prompted.');
       } else if (
         lower.includes('insufficient balance to perform useroperation') ||
         lower.includes('sender balance and deposit together') ||
-        lower.includes('precheck')
+        lower.includes('precheck') ||
+        lower.includes('estimate gas')
       ) {
-        throw new Error('Gas sponsorship not applied (AA precheck). Verify paymaster allowlist and Base chain (8453).');
+        throw new Error('Transaction requires approval. Please approve spend permissions when prompted, or ensure you have sufficient USDC balance.');
       } else if (msg.includes('paymaster')) {
-        throw new Error('Gas sponsorship failed. Please try again.');
+        throw new Error('Gas sponsorship configuration error. Please try again or contact support.');
       }
       
       throw error;
