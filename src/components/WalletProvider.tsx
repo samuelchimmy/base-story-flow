@@ -328,6 +328,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     console.log('[sendCalls] 🚀 Starting transaction from Sub Account:', subAccountAddress);
     console.log('[sendCalls] 📝 Calls:', calls);
+    console.log('[sendCalls] 💰 Paymaster URL configured:', PAYMASTER_URL ? 'YES' : 'NO');
+    if (PAYMASTER_URL) {
+      console.log('[sendCalls] 🔑 Paymaster URL:', PAYMASTER_URL);
+    }
 
     // Ensure Sub Account is attached for this session (required each session)
     try {
@@ -350,7 +354,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       if (typeof cid === 'string' && cid.startsWith('0x')) {
         chainIdHex = cid;
       }
-      console.log('[sendCalls] 🔗 Chain ID:', chainIdHex);
+      console.log('[sendCalls] 🔗 Current Chain ID:', chainIdHex, '(', parseInt(chainIdHex, 16), ')');
     } catch (err) {
       console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
@@ -388,13 +392,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       } : undefined,
     };
 
-    console.log('[sendCalls] 📦 Transaction params:', JSON.stringify(params, null, 2));
+    console.log('[sendCalls] 📦 Transaction params:');
+    console.log('  - Version:', params.version);
+    console.log('  - Chain ID:', params.chainId, '(', parseInt(params.chainId, 16), ')');
+    console.log('  - From (Sub Account):', params.from);
+    console.log('  - Calls count:', params.calls.length);
+    console.log('  - Paymaster configured:', params.capabilities ? 'YES ✅' : 'NO ❌');
+    if (params.capabilities) {
+      console.log('  - Paymaster URL:', params.capabilities.paymasterUrl);
+    }
+    console.log('[sendCalls] 📋 Full params:', JSON.stringify(params, null, 2));
 
     try {
       // Send transaction from Sub Account with paymaster
       // This will automatically trigger Spend Permissions if needed
       // First attempt direct send; on estimation/precheck errors, simulate to get clearer reason then retry
       try {
+        console.log('[sendCalls] 📤 Sending wallet_sendCalls request...');
         const callsId = (await provider.request({
           method: 'wallet_sendCalls',
           params: [params],
@@ -404,6 +418,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         console.log('[sendCalls] 💡 Auto Spend Permissions: If this was your first transaction, you should have seen a popup to approve spending from your Base Account.');
         return callsId;
       } catch (primaryErr: any) {
+        console.error('[sendCalls] ❌ Primary send failed:', primaryErr);
+        console.error('[sendCalls] 📋 Error details:', {
+          message: primaryErr?.message,
+          code: primaryErr?.code,
+          data: primaryErr?.data,
+        });
+        
         const rawMsg = String(primaryErr?.message || '');
         const code = (primaryErr?.code ?? primaryErr?.data?.code);
         const looksLikeEstimation = /(estimate|precheck|insufficient balance to perform useroperation|sender balance and deposit together)/i.test(rawMsg);
