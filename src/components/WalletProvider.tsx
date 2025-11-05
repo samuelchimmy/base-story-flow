@@ -329,6 +329,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     console.log('[sendCalls] 🚀 Starting transaction from Sub Account:', subAccountAddress);
     console.log('[sendCalls] 📝 Calls:', calls);
 
+    // Ensure Sub Account is attached for this session (required each session)
+    try {
+      await provider.request({
+        method: 'wallet_addSubAccount',
+        params: [{ account: { type: 'create' } }],
+      });
+      console.log('[sendCalls] 🔐 Sub Account attached for this session');
+    } catch (attachErr) {
+      console.warn('[sendCalls] ⚠️ Sub Account attach skipped/failed (may already be attached):', attachErr);
+    }
+
     // Resolve chainId dynamically
     let chainIdHex = '0x2105'; // Base mainnet default
     try {
@@ -344,7 +355,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       console.warn('[sendCalls] ⚠️ eth_chainId failed, using default:', chainIdHex);
     }
 
-    // Use current chain - paymaster configuration will determine if it's supported
+    // Ensure Base mainnet (8453); attempt switch if mismatched
+    if (chainIdHex !== '0x2105') {
+      console.warn('[sendCalls] ⚠️ Not on Base mainnet. Attempting to switch to 8453...');
+      try {
+        await provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2105' }],
+        });
+        chainIdHex = '0x2105';
+        console.log('[sendCalls] 🔄 Switched to Base mainnet (8453)');
+      } catch (switchErr) {
+        console.warn('[sendCalls] ⚠️ Chain switch failed, continuing with current chain.');
+      }
+    }
+
     console.log(`[sendCalls] 🔗 Using chain: ${chainIdHex}`);
 
     // Build transaction params with explicit paymaster capability
