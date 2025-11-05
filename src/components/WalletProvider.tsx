@@ -380,7 +380,27 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         return callsId;
       } catch (primaryErr: any) {
         const rawMsg = String(primaryErr?.message || '');
+        const code = (primaryErr?.code ?? primaryErr?.data?.code);
         const looksLikeEstimation = /(estimate|precheck|insufficient balance to perform useroperation|sender balance and deposit together)/i.test(rawMsg);
+        const isPaymasterIssue = code === -32002 || rawMsg.includes('not in allowlist') || rawMsg.includes('paymaster');
+        
+        // If paymaster is blocking, try without it
+        if (isPaymasterIssue && PAYMASTER_URL) {
+          console.warn('[sendCalls] ⚠️ Paymaster issue detected, retrying without paymaster...', primaryErr);
+          const paramsNoPaymaster = { ...params, capabilities: undefined };
+          try {
+            const callsId = (await provider.request({
+              method: 'wallet_sendCalls',
+              params: [paramsNoPaymaster],
+            })) as string;
+            console.log('[sendCalls] ✅ Transaction sent without paymaster! Calls ID:', callsId);
+            return callsId;
+          } catch (noPaymasterErr: any) {
+            console.error('[sendCalls] ❌ Failed even without paymaster:', noPaymasterErr);
+            throw new Error('Transaction failed. You may need ETH for gas or the contract address needs to be added to the paymaster allowlist.');
+          }
+        }
+        
         if (!looksLikeEstimation) throw primaryErr;
 
         console.warn('[sendCalls] ⚠️ Primary send failed, simulating calls for diagnosis...', primaryErr);
@@ -398,9 +418,26 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           return retryId;
         } catch (simErr: any) {
           console.error('[sendCalls] ❌ Simulation failed:', simErr);
+          
+          // Try without paymaster as last resort
+          if (PAYMASTER_URL) {
+            console.warn('[sendCalls] 🔄 Last attempt: trying without paymaster...');
+            const paramsNoPaymaster = { ...params, capabilities: undefined };
+            try {
+              const lastResortId = (await provider.request({
+                method: 'wallet_sendCalls',
+                params: [paramsNoPaymaster],
+              })) as string;
+              console.log('[sendCalls] ✅ Success without paymaster! Calls ID:', lastResortId);
+              return lastResortId;
+            } catch (finalErr: any) {
+              console.error('[sendCalls] ❌ All attempts failed');
+            }
+          }
+          
           const simMsg = String(simErr?.message || simErr);
           throw new Error(
-            `Failed to estimate gas (simulation). ${simMsg}. Gas sponsorship likely not applied or contract call would revert. Verify paymaster allowlist (entry point + USDC approve + target function) and Base chain (8453).`
+            `Transaction failed. This may require gas that isn't being sponsored. Please ensure you have ETH for gas or contact support.`
           );
         }
       }
