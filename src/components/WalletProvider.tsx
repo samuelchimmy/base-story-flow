@@ -388,7 +388,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         value: call.value || '0x0',
       })),
       capabilities: PAYMASTER_URL ? { 
-        paymasterUrl: PAYMASTER_URL 
+        paymasterService: { url: PAYMASTER_URL }
       } : undefined,
     };
 
@@ -398,8 +398,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     console.log('  - From (Sub Account):', params.from);
     console.log('  - Calls count:', params.calls.length);
     console.log('  - Paymaster configured:', params.capabilities ? 'YES ✅' : 'NO ❌');
-    if (params.capabilities) {
-      console.log('  - Paymaster URL:', params.capabilities.paymasterUrl);
+    if (params.capabilities && (params as any).capabilities.paymasterService) {
+      console.log('  - Paymaster URL:', (params as any).capabilities.paymasterService.url);
     }
     console.log('[sendCalls] 📋 Full params:', JSON.stringify(params, null, 2));
 
