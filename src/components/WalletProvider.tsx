@@ -449,6 +449,30 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         
         if (!looksLikeEstimation) throw primaryErr;
 
+        // Try a robust fallback: sequential eth_sendTransaction (uses SDK paymasterUrls)
+        console.warn('[sendCalls] 🔁 Estimation failed - trying eth_sendTransaction fallback (sequential)...');
+        try {
+          const txHashes: string[] = [];
+          for (const c of params.calls) {
+            const tx = (await provider.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: subAccountAddress,
+                to: c.to,
+                data: c.data,
+                value: c.value,
+              }],
+            })) as string;
+            txHashes.push(tx);
+            console.log('[sendCalls] ✅ Sent tx via eth_sendTransaction:', tx);
+          }
+          const last = txHashes[txHashes.length - 1];
+          console.log('[sendCalls] 🎉 Fallback path succeeded. Last tx hash:', last);
+          return last; // We return tx hash; getCallsStatus will handle both IDs and tx hashes
+        } catch (fallbackErr) {
+          console.warn('[sendCalls] ⚠️ Fallback eth_sendTransaction failed, attempting simulation next...', fallbackErr);
+        }
+
         console.warn('[sendCalls] ⚠️ Primary send failed, simulating calls for diagnosis...', primaryErr);
         try {
           const sim = await provider.request({
@@ -526,12 +550,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Pass the id string directly, not wrapped in an object
   const getCallsStatus = useCallback(async (id: string) => {
     if (!provider) throw new Error('Wallet provider not ready');
-    
-    console.log('[DEBUG] 📞 Calling wallet_getCallsStatus with ID:', id);
-    
+    console.log('[DEBUG] 📞 Calling wallet_getCallsStatus with ID/hash:', id);
+
+    // If this looks like a transaction hash, fetch receipt directly and normalize the shape
+    if (/^0x[a-fA-F0-9]{64}$/.test(id)) {
+      const receipt = await provider.request({
+        method: 'eth_getTransactionReceipt',
+        params: [id],
+      });
+      return { receipts: receipt ? [receipt] : [] };
+    }
+
+    // Otherwise, treat it as a callsId (EIP-5792)
     return await provider.request({
       method: 'wallet_getCallsStatus',
-      params: [id], // ✅ FIXED: Pass string directly, not { id }
+      params: [id],
     });
   }, [provider]);
 
