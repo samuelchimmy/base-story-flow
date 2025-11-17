@@ -141,38 +141,37 @@ export default function AMA() {
       const amaId = BigInt(id!);
       const messageContent = newMessage.trim();
 
+      // Build all calls in one atomic batch
+      const calls = [];
+
+      // If tip is required, add USDC transfer call BEFORE the message posting
+      if (ama.requiresTip) {
+        const tipAmountInUSDC = ama.tipAmount;
+
+        toast.loading('Preparing tip and message...', { id: sendToast });
+
+        // Transfer USDC to the AMA contract directly
+        // The contract will handle distribution to the creator
+        const transferCalldata = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'transfer',
+          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
+        });
+
+        calls.push({
+          to: USDC_CONTRACT_ADDRESS,
+          data: transferCalldata,
+        });
+      }
+
+      toast.loading('Posting message to blockchain...', { id: sendToast });
+
       // Encode the postMessageToAMA function call
       const postMessageCalldata = encodeFunctionData({
         abi: AMA_CONTRACT_ABI,
         functionName: 'postMessageToAMA',
         args: [amaId, messageContent],
       });
-
-      // Build all calls in one atomic batch
-      const calls = [];
-
-      // If tip is required, approve and transfer USDC to the AMA contract
-      if (ama.requiresTip) {
-        const tipAmountInUSDC = ama.tipAmount;
-
-        toast.loading('Preparing tip and message...', { id: sendToast });
-
-        // Step 1: Approve USDC transfer to AMA contract (not creator)
-        const approveCalldata = encodeFunctionData({
-          abi: USDC_ABI,
-          functionName: 'approve',
-          args: [AMA_CONTRACT_ADDRESS, tipAmountInUSDC],
-        });
-
-        calls.push({
-          to: USDC_CONTRACT_ADDRESS,
-          data: approveCalldata,
-        });
-
-        // Note: Contract will handle transferFrom internally using the allowance
-      }
-
-      toast.loading('Posting message to blockchain...', { id: sendToast });
 
       // Add the message posting call
       calls.push({
