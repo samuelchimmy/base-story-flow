@@ -186,8 +186,11 @@ export default function AMA() {
       toast.success('Message sent successfully!', { id: sendToast });
       setNewMessage('');
       
-      // Refresh messages after a short delay to allow blockchain to update
-      setTimeout(() => fetchMessages(), 2000);
+      // Refresh AMA data and messages after a short delay to allow blockchain to update
+      setTimeout(async () => {
+        await fetchAMA(); // Update message counter
+        await fetchMessages(); // Refresh messages list
+      }, 1500);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message', {
