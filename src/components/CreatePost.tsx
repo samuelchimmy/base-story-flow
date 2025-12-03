@@ -44,15 +44,23 @@ export const CreatePost = ({ onClose, refetchStories }: CreatePostProps) => {
       console.log('[CreatePost] Story posted! Calls ID:', callsId);
 
       toast.success('Story posted successfully!', {
-        description: 'It will appear in the feed shortly',
+        description: 'It may take a few seconds to appear in the feed',
       });
       
       setContent('');
       onClose();
       
-      setTimeout(() => {
-        refetchStories();
-      }, 2000);
+      // Retry fetching multiple times to catch the new story once blockchain confirms
+      const retryFetch = async (attempts: number, delay: number) => {
+        for (let i = 0; i < attempts; i++) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          console.log(`[CreatePost] Refetch attempt ${i + 1}/${attempts}`);
+          await refetchStories();
+        }
+      };
+      
+      // Start fetching after 3 seconds, then retry 3 more times every 5 seconds
+      retryFetch(4, 4000);
     } catch (error: any) {
       console.error('[CreatePost] ❌ Failed to post story:', error);
       console.error('[CreatePost] Error details:', {
