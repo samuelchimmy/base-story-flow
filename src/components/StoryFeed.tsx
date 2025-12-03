@@ -29,12 +29,6 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
 
   // Fetch stories from blockchain
   const fetchStories = useCallback(async () => {
-    // Only set the main loading state to true if there are no stories on screen yet.
-    // This prevents the flicker on subsequent background refreshes.
-    if (stories.length === 0) {
-      setIsLoading(true);
-    }
-    
     try {
       const data = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
@@ -42,8 +36,12 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
         functionName: 'getAllStories',
       });
       
+      console.log('Raw stories from contract:', data);
+      
       // Filter out any stories marked as deleted by the new contract
-      const activeStories = data.filter(story => !story.deleted);
+      const activeStories = (data as any[]).filter(story => !story.deleted);
+      
+      console.log('Active stories after filter:', activeStories.length);
 
       // Prepare stories array with timestamps for view count matching
       const storiesForViews = activeStories.map(story => ({
@@ -76,15 +74,16 @@ export const StoryFeed = ({ onPostClick, onAMAClick }: StoryFeedProps) => {
         deleted: story.deleted,
       }));
       
+      console.log('Transformed stories:', transformedStories.length);
+      
       setStories(transformedStories);
     } catch (error) {
       console.error('Failed to fetch stories:', error);
       toast.error('Failed to load stories from blockchain');
     } finally {
-      // Always set loading to false after a fetch, to remove the initial spinner
       setIsLoading(false);
     }
-  }, [stories.length]);
+  }, []);
 
   // Fetch user data for sessions tab
   const fetchUserData = useCallback(async () => {
